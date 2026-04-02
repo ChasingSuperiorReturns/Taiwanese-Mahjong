@@ -17,6 +17,7 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: 'flower', label: '花牌' },
   { key: 'flush', label: '一色' },
   { key: 'pattern', label: '牌型' },
+  { key: 'terminal', label: '么九' },
   { key: 'special', label: '特殊' },
 ];
 
@@ -27,6 +28,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   flower: '#9a7a4a',
   flush: '#6a5a9a',
   pattern: '#5a8a7a',
+  terminal: '#7a6a4a',
   special: '#8a5a7a',
 };
 

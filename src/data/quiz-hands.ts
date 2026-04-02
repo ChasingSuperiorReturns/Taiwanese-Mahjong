@@ -1,7 +1,13 @@
 // ─── Pre-built quiz scenarios ───
-// Each scenario has a hand, context overrides, expected total tai, and difficulty.
-// All expected tai values are computed AFTER conflict resolution via calculateScore().
-// Open hands (isConcealed=false) isolate specific rules for cleaner quiz questions.
+// All tai values verified against calculateScore() with twmahjong.com rules.
+//
+// Base hand design (used where noted):
+//   Melds: chi(W234) + chi(T456,open) + chi(S678,open) + pong(EAST,open) + chi(T123,open)
+//   Pair: [W(6),W(6)]   Context: seatWind=West, roundWind=South, flowers=[]
+//   Ambient = WindTriplet(1) + NoFlowers(1) = 2 tai
+//
+// Sequence starts = {2,4,6,1} → no straight, no same-number, no old&young.
+// W(6) pair → not 2/5/8. EAST pong → has honor. 3 suits → no MissingOneSuit.
 
 import { Hand } from '@/src/engine/hand';
 import { createHand, chi, pong, kong } from '@/src/engine/hand';
@@ -21,473 +27,421 @@ export interface QuizScenario {
   hintEn: string;
 }
 
-// ─── Helper: standard base hand (triggers 0 tai by itself) ───
-// Mixed suits, has a pong, no honors, one chi kept concealed to avoid FullyOpen.
-// isConcealed=false overall (not all melds concealed).
-const baseHand = () => [
-  chi([W(1), W(2), W(3)]),         // concealed chi — prevents FullyOpen(2)
+// ─── Base hand: triggers exactly WindTriplet(1) + NoFlowers(1) = 2 tai ───
+const BASE_CTX: Partial<GameContext> = {
+  seatWind: Wind.West,
+  roundWind: Wind.South,
+  flowers: [],
+};
+
+const baseMelds = () => [
+  chi([W(2), W(3), W(4)]),          // concealed — prevents FullyOpen
   chi([T(4), T(5), T(6)], false),
-  chi([S(2), S(3), S(4)], false),
-  pong(W(9), false),
-  chi([T(7), T(8), T(9)], false),
-] as const;
+  chi([S(6), S(7), S(8)], false),
+  pong(EAST, false),                // honor → prevents NoHonors
+  chi([T(1), T(2), T(3)], false),
+];
+
+const BASE_PAIR: [ReturnType<typeof W>, ReturnType<typeof W>] = [W(6), W(6)];
 
 export const QUIZ_SCENARIOS: QuizScenario[] = [
   // ════════════════════════════════════════════
-  // EASY — single rule, 1 tai each
-  // Open hands isolate one rule at a time.
+  // EASY — ambient(2) + featured rule
   // ════════════════════════════════════════════
 
-  // e1: 自摸 — Self-Draw
+  // e1: 自摸(1) + WindTriplet(1) + NoFlowers(1) = 3
   {
     id: 'e1',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isSelfDraw: true },
-    expectedTai: 1,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: { ...BASE_CTX, isSelfDraw: true },
+    expectedTai: 3,
     difficulty: 'easy',
-    hintZh: '自摸',
-    hintEn: 'Self-Draw',
+    hintZh: '自摸(1) + 風牌(1) + 無花(1)',
+    hintEn: 'Self-Draw(1) + Wind Triplet(1) + No Flowers(1)',
   },
 
-  // e2: 莊家 — Dealer
+  // e2: 莊家(1) + ambient(2) = 3
   {
     id: 'e2',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isDealer: true, dealerStreak: 0 },
-    expectedTai: 1,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: { ...BASE_CTX, isDealer: true, dealerStreak: 0 },
+    expectedTai: 3,
     difficulty: 'easy',
-    hintZh: '莊家',
-    hintEn: 'Dealer',
+    hintZh: '莊家(1) + 風牌(1) + 無花(1)',
+    hintEn: 'Dealer(1) + Wind Triplet(1) + No Flowers(1)',
   },
 
-  // e3: 三元牌（紅中）— Dragon Triplet (Red)
+  // e3: 獨獨(2) + ambient(2) = 4
   {
     id: 'e3',
-    hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)], false), chi([S(2), S(3), S(4)], false), pong(RED, false), chi([T(7), T(8), T(9)], false)],
-      [W(5), W(5)], W(5),
-    ),
-    context: {},
-    expectedTai: 1,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6), true),
+    context: { ...BASE_CTX },
+    expectedTai: 4,
     difficulty: 'easy',
-    hintZh: '三元牌（紅中）',
-    hintEn: 'Dragon Triplet (Red)',
+    hintZh: '獨獨(2) + 風牌(1) + 無花(1)',
+    hintEn: 'Single Wait(2) + Wind Triplet(1) + No Flowers(1)',
   },
 
-  // e4: 圈風牌（東風）— Round Wind (East)
+  // e4: 中發白(2) — RED pong, no wind pong → DragonTriplet(2) + NoFlowers(1) = 3
   {
     id: 'e4',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)], false), chi([S(2), S(3), S(4)], false), pong(EAST, false), chi([T(7), T(8), T(9)], false)],
-      [W(5), W(5)], W(5),
+      [chi([W(2), W(3), W(4)]), chi([T(4), T(5), T(6)], false), chi([S(6), S(7), S(8)], false), pong(RED, false), chi([T(1), T(2), T(3)], false)],
+      BASE_PAIR, W(6),
     ),
-    context: { roundWind: Wind.East, seatWind: Wind.South },
-    expectedTai: 1,
+    context: { ...BASE_CTX },
+    expectedTai: 3,
     difficulty: 'easy',
-    hintZh: '圈風牌（東風）',
-    hintEn: 'Round Wind (East)',
+    hintZh: '中發白(2) + 無花(1)',
+    hintEn: 'Dragon Triplet(2) + No Flowers(1)',
   },
 
-  // e5: 門風牌（南風）— Seat Wind (South)
+  // e5: 正風(2) — WEST pong, seatWind=West → MatchingWind(2) + NoFlowers(1) = 3
   {
     id: 'e5',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)], false), chi([S(2), S(3), S(4)], false), pong(SOUTH, false), chi([T(7), T(8), T(9)], false)],
-      [W(5), W(5)], W(5),
+      [chi([W(2), W(3), W(4)]), chi([T(4), T(5), T(6)], false), chi([S(6), S(7), S(8)], false), pong(WEST, false), chi([T(1), T(2), T(3)], false)],
+      BASE_PAIR, W(6),
     ),
-    context: { seatWind: Wind.South, roundWind: Wind.West },
-    expectedTai: 1,
+    context: { ...BASE_CTX },
+    expectedTai: 3,
     difficulty: 'easy',
-    hintZh: '門風牌（南風）',
-    hintEn: 'Seat Wind (South)',
+    hintZh: '正風(2) + 無花(1)',
+    hintEn: 'Matching Wind(2) + No Flowers(1)',
   },
 
-  // e6: 門清 — Concealed Hand (discard win)
+  // e6: 正花(2) — Autumn matches West seat → MatchingFlower(2) + WindTriplet(1) = 3
   {
     id: 'e6',
-    hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)]), chi([S(2), S(3), S(4)]), pong(W(9)), chi([T(7), T(8), T(9)])],
-      [S(5), S(5)], S(5),
-    ),
-    context: { isSelfDraw: false },
-    expectedTai: 1,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: { ...BASE_CTX, flowers: [flowerTile(FlowerType.Autumn)] },
+    expectedTai: 3,
     difficulty: 'easy',
-    hintZh: '門清（食銃胡牌）',
-    hintEn: 'Concealed Hand (win by discard)',
+    hintZh: '正花(2) + 風牌(1)',
+    hintEn: 'Matching Flower(2) + Wind Triplet(1)',
   },
 
-  // e7: 獨聽 — Single Wait
+  // e7: 爛花(1) — Spring(East) ≠ West → NonMatchingFlower(1) + WindTriplet(1) = 2
   {
     id: 'e7',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5), true),
-    context: {},
-    expectedTai: 1,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: { ...BASE_CTX, flowers: [flowerTile(FlowerType.Spring)] },
+    expectedTai: 2,
     difficulty: 'easy',
-    hintZh: '獨聽',
-    hintEn: 'Single Wait',
+    hintZh: '爛花(1) + 風牌(1)',
+    hintEn: 'Non-Matching Flower(1) + Wind Triplet(1)',
   },
 
-  // e8: 正花（東位持春）— Matching Flower
+  // e8: Just the base — WindTriplet(1) + NoFlowers(1) = 2
   {
     id: 'e8',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { seatWind: Wind.East, flowers: [flowerTile(FlowerType.Spring)] },
-    expectedTai: 1,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: { ...BASE_CTX },
+    expectedTai: 2,
     difficulty: 'easy',
-    hintZh: '正花（東位持春）',
-    hintEn: 'Matching Flower (Spring for East)',
-  },
-
-  // e9: 河底撈魚 — Win on Last Discard
-  {
-    id: 'e9',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isLastDiscard: true },
-    expectedTai: 1,
-    difficulty: 'easy',
-    hintZh: '河底撈魚',
-    hintEn: 'Win on Last Discard',
-  },
-
-  // e10: 搶槓 — Robbing a Kong
-  {
-    id: 'e10',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isRobbingKong: true },
-    expectedTai: 1,
-    difficulty: 'easy',
-    hintZh: '搶槓',
-    hintEn: 'Robbing a Kong',
+    hintZh: '風牌(1) + 無花(1)',
+    hintEn: 'Wind Triplet(1) + No Flowers(1)',
   },
 
   // ════════════════════════════════════════════
-  // MEDIUM — 2-5 tai
+  // MEDIUM — pattern rules, 3–20 tai
   // ════════════════════════════════════════════
 
-  // m1: 平胡 — All Sequences (2 tai)
-  // Open chis, no flowers, no honors, discard win, not single wait
+  // m1: 平胡(3) + 無字(1) + 爛花(1) = 5
+  //   All chi, no pong, with non-matching flower
+  //   Starts: 2(W),3(T),5(S),6(W),7(T) — all unique, no {1,4,7}
   {
     id: 'm1',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([W(4), W(5), W(6)], false), chi([T(1), T(2), T(3)], false), chi([T(4), T(5), T(6)], false), chi([S(1), S(2), S(3)], false)],
-      [S(5), S(5)], S(5),
+      [chi([W(2), W(3), W(4)]), chi([T(3), T(4), T(5)], false), chi([S(5), S(6), S(7)], false), chi([W(6), W(7), W(8)], false), chi([T(7), T(8), T(9)], false)],
+      [S(9), S(9)], S(9),
     ),
-    context: {},
-    expectedTai: 2,
+    context: { ...BASE_CTX, flowers: [flowerTile(FlowerType.Spring)] },
+    expectedTai: 5,
     difficulty: 'medium',
-    hintZh: '平胡（無花、無字、無刻、聽雙頭、非自摸）',
-    hintEn: 'All Sequences (strict conditions)',
+    hintZh: '平胡(3) + 無字(1) + 爛花(1)',
+    hintEn: 'All Sequences(3) + No Honors(1) + Non-Matching Flower(1)',
   },
 
-  // m2: 三暗刻 — 3 Concealed Triplets (2 tai)
-  // 3 concealed pongs + 2 open chis; hand is NOT concealed overall
+  // m2: 門清(3) + WindTriplet(1) + NoFlowers(1) = 5
+  //   All concealed, discard win
   {
     id: 'm2',
     hand: createHand(
-      [pong(W(1)), pong(T(3)), pong(S(5)), chi([W(4), W(5), W(6)], false), chi([T(7), T(8), T(9)], false)],
-      [S(9), S(9)], S(9),
+      [chi([W(2), W(3), W(4)]), chi([T(4), T(5), T(6)]), chi([S(6), S(7), S(8)]), pong(EAST), chi([T(1), T(2), T(3)])],
+      BASE_PAIR, W(6),
     ),
-    context: {},
-    expectedTai: 2,
+    context: { ...BASE_CTX, isSelfDraw: false },
+    expectedTai: 5,
     difficulty: 'medium',
-    hintZh: '三暗刻',
-    hintEn: '3 Concealed Triplets',
+    hintZh: '門清(3) + 風牌(1) + 無花(1)',
+    hintEn: 'Concealed(3) + Wind Triplet(1) + No Flowers(1)',
   },
 
-  // m3: 槓上開花＋自摸 — Win After Kong + Self-Draw (2 tai)
+  // m3: 門清自摸(5) + WindTriplet(1) + NoFlowers(1) = 7
   {
     id: 'm3',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isSelfDraw: true, isAfterKong: true },
-    expectedTai: 2,
+    hand: createHand(
+      [chi([W(2), W(3), W(4)]), chi([T(4), T(5), T(6)]), chi([S(6), S(7), S(8)]), pong(EAST), chi([T(1), T(2), T(3)])],
+      BASE_PAIR, W(6),
+    ),
+    context: { ...BASE_CTX, isSelfDraw: true },
+    expectedTai: 7,
     difficulty: 'medium',
-    hintZh: '槓上開花＋自摸',
-    hintEn: 'Win After Kong + Self-Draw',
+    hintZh: '門清自摸(5) + 風牌(1) + 無花(1)',
+    hintEn: 'Concealed Self-Draw(5) + Wind(1) + No Flowers(1)',
   },
 
-  // m4: 海底撈月＋自摸 — Last Tile Self-Draw + Self-Draw (2 tai)
+  // m4: 明龍(10) — W123+W456+W789, open + WindTriplet(1) + NoFlowers(1) = 12
+  //   Extra chi T345 avoids same-number with W starts
   {
     id: 'm4',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isSelfDraw: true, isLastTileSelfDraw: true },
-    expectedTai: 2,
+    hand: createHand(
+      [chi([W(1), W(2), W(3)]), chi([W(4), W(5), W(6)], false), chi([W(7), W(8), W(9)], false), pong(EAST, false), chi([T(3), T(4), T(5)], false)],
+      [S(6), S(6)], S(6),
+    ),
+    context: { ...BASE_CTX },
+    expectedTai: 12,
     difficulty: 'medium',
-    hintZh: '海底撈月＋自摸',
-    hintEn: 'Win on Last Draw + Self-Draw',
+    hintZh: '明龍(10) + 風牌(1) + 無花(1)',
+    hintEn: 'Open Pure Straight(10) + Wind(1) + No Flowers(1)',
   },
 
-  // m5: 全求＋獨聽 — Fully Open + Single Wait (3 tai)
-  // All 5 melds open, pair wait, discard win
+  // m5: 一般高(3) — two identical W234 + WindTriplet(1) + NoFlowers(1) = 5
   {
     id: 'm5',
     hand: createHand(
-      [chi([W(1), W(2), W(3)], false), chi([T(4), T(5), T(6)], false), chi([S(2), S(3), S(4)], false), pong(W(9), false), pong(T(9), false)],
-      [S(5), S(5)], S(5), true,
+      [chi([W(2), W(3), W(4)]), chi([W(2), W(3), W(4)], false), chi([T(5), T(6), T(7)], false), pong(EAST, false), chi([S(3), S(4), S(5)], false)],
+      [T(9), T(9)], T(9),
     ),
-    context: { isSelfDraw: false },
-    expectedTai: 3,
+    context: { ...BASE_CTX },
+    expectedTai: 5,
     difficulty: 'medium',
-    hintZh: '全求＋獨聽',
-    hintEn: 'Fully Open + Single Wait',
+    hintZh: '一般高(3) + 風牌(1) + 無花(1)',
+    hintEn: 'Identical Seq Pair(3) + Wind(1) + No Flowers(1)',
   },
 
-  // m6: 不求（門清自摸）— Concealed Self-Draw (3 tai)
-  // Replaces Concealed(1) + SelfDraw(1) via conflict resolution
+  // m6: 老少(2) — W123+W789 + WindTriplet(1) + NoFlowers(1) = 4
+  //   Extra chi starts 5(T), 3(S) — all unique, no straight
   {
     id: 'm6',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)]), chi([S(2), S(3), S(4)]), pong(W(9)), chi([T(7), T(8), T(9)])],
-      [S(5), S(5)], S(5),
+      [chi([W(1), W(2), W(3)]), chi([W(7), W(8), W(9)], false), chi([T(5), T(6), T(7)], false), pong(EAST, false), chi([S(3), S(4), S(5)], false)],
+      [T(9), T(9)], T(9),
     ),
-    context: { isSelfDraw: true },
-    expectedTai: 3,
+    context: { ...BASE_CTX },
+    expectedTai: 4,
     difficulty: 'medium',
-    hintZh: '不求（門清自摸）— 取代門清＋自摸',
-    hintEn: 'Concealed Self-Draw — replaces Concealed + Self-Draw',
+    hintZh: '老少(2) + 風牌(1) + 無花(1)',
+    hintEn: 'Old & Young(2) + Wind(1) + No Flowers(1)',
   },
 
-  // m7: 連一拉一 — Dealer Streak (3 tai = 2×1+1)
+  // m7: 二兄弟(3) — pong W5+T5 + WindTriplet(1) + NoFlowers(1) = 5
   {
     id: 'm7',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: { isDealer: true, dealerStreak: 1 },
-    expectedTai: 3,
+    hand: createHand(
+      [chi([W(2), W(3), W(4)]), pong(W(5), false), pong(T(5), false), chi([S(3), S(4), S(5)], false), pong(EAST, false)],
+      [T(9), T(9)], T(9),
+    ),
+    context: { ...BASE_CTX },
+    expectedTai: 5,
     difficulty: 'medium',
-    hintZh: '連一拉一（連莊拉莊）',
-    hintEn: 'Dealer Streak (1 consecutive)',
+    hintZh: '二兄弟(3) + 風牌(1) + 無花(1)',
+    hintEn: 'Two Brothers(3) + Wind(1) + No Flowers(1)',
   },
 
-  // m8: 花槓（四季）＋正花 — Flower Group + Matching Flower (3 tai = 2+1)
+  // m8: 小三元(20) — 2 dragon pongs + WHITE pair + NoFlowers(1) = 21
+  //   Starts: 2(W),5(T),3(S) — all unique
   {
     id: 'm8',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: {
-      seatWind: Wind.East,
-      flowers: [
-        flowerTile(FlowerType.Spring), flowerTile(FlowerType.Summer),
-        flowerTile(FlowerType.Autumn), flowerTile(FlowerType.Winter),
-      ],
-    },
-    expectedTai: 3,
+    hand: createHand(
+      [chi([W(2), W(3), W(4)]), pong(RED, false), pong(GREEN, false), chi([T(5), T(6), T(7)], false), chi([S(3), S(4), S(5)], false)],
+      [WHITE, WHITE], WHITE,
+    ),
+    context: { ...BASE_CTX },
+    expectedTai: 21,
     difficulty: 'medium',
-    hintZh: '花槓（四季）＋正花',
-    hintEn: 'Flower Group (Seasons) + Matching Flower',
+    hintZh: '小三元(20) + 無花(1)',
+    hintEn: 'Small Three Dragons(20) + No Flowers(1)',
   },
 
-  // m9: 小三元 — Small Three Dragons (4 tai)
-  // Excludes individual Dragon Triplets
+  // m9: 斷么(5) — AllMiddle excludes NoHonors. +NonMatchingFlower(1) = 6
+  //   All tiles value 2-8, no honors. Starts: 2(W),3(T),4(S),6(T) — all unique
   {
     id: 'm9',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)], false), chi([S(2), S(3), S(4)], false), pong(RED, false), pong(GREEN, false)],
-      [WHITE, WHITE], WHITE,
+      [chi([W(2), W(3), W(4)]), chi([T(3), T(4), T(5)], false), chi([S(4), S(5), S(6)], false), pong(W(5), false), chi([T(6), T(7), T(8)], false)],
+      [S(3), S(3)], S(3),
     ),
-    context: {},
-    expectedTai: 4,
+    context: { ...BASE_CTX, flowers: [flowerTile(FlowerType.Spring)] },
+    expectedTai: 6,
     difficulty: 'medium',
-    hintZh: '小三元（兩刻一眼，取代三元牌）',
-    hintEn: 'Small Three Dragons (replaces Dragon Triplets)',
+    hintZh: '斷么(5) + 爛花(1)',
+    hintEn: 'All Simples(5) + Non-Matching Flower(1)',
   },
 
-  // m10: 混一色 — Half Flush (4 tai)
-  // One suit (萬) + honors; set wind context to avoid wind bonuses
+  // m10: 缺一門(5) — only wan+tong + WindTriplet(1) + NoFlowers(1) = 7
   {
     id: 'm10',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([W(4), W(5), W(6)], false), chi([W(7), W(8), W(9)], false), pong(EAST, false), pong(SOUTH, false)],
-      [W(5), W(5)], W(5),
+      [chi([W(2), W(3), W(4)]), chi([T(4), T(5), T(6)], false), chi([W(6), W(7), W(8)], false), pong(EAST, false), chi([T(1), T(2), T(3)], false)],
+      [W(9), W(9)], W(9),
     ),
-    context: { roundWind: Wind.West, seatWind: Wind.North },
-    expectedTai: 4,
+    context: { ...BASE_CTX },
+    expectedTai: 7,
     difficulty: 'medium',
-    hintZh: '混一色（萬＋字）',
-    hintEn: 'Half Flush (one suit + honors)',
-  },
-
-  // m11: 碰碰胡＋三元牌 — All Triplets + Dragon Triplet (5 tai = 4+1)
-  {
-    id: 'm11',
-    hand: createHand(
-      [pong(W(1)), pong(T(3), false), pong(S(5), false), pong(W(7), false), pong(RED, false)],
-      [T(9), T(9)], T(9),
-    ),
-    context: {},
-    expectedTai: 5,
-    difficulty: 'medium',
-    hintZh: '碰碰胡＋三元牌',
-    hintEn: 'All Triplets + Dragon Triplet',
-  },
-
-  // m12: 四暗刻 — 4 Concealed Triplets (5 tai)
-  // 4 concealed pongs + 1 open chi; excludes 3 Concealed Triplets
-  {
-    id: 'm12',
-    hand: createHand(
-      [pong(W(1)), pong(T(3)), pong(S(5)), pong(W(7)), chi([T(7), T(8), T(9)], false)],
-      [S(9), S(9)], S(9),
-    ),
-    context: {},
-    expectedTai: 5,
-    difficulty: 'medium',
-    hintZh: '四暗刻（取代三暗刻）',
-    hintEn: '4 Concealed Triplets (replaces 3 Concealed Triplets)',
+    hintZh: '缺一門(5) + 風牌(1) + 無花(1)',
+    hintEn: 'Missing One Suit(5) + Wind(1) + No Flowers(1)',
   },
 
   // ════════════════════════════════════════════
-  // HARD — 8+ tai
+  // HARD — high-value combos, 30+ tai
   // ════════════════════════════════════════════
 
-  // h1: 清一色 — Full Flush (8 tai)
-  // Excludes Half Flush
+  // h1: 對對胡(30) — all pongs + WindTriplet(1) + NoFlowers(1) = 32
+  //   First pong concealed to avoid FullyOpen
   {
     id: 'h1',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([W(4), W(5), W(6)], false), chi([W(7), W(8), W(9)], false), pong(W(1), false), pong(W(2), false)],
-      [W(5), W(5)], W(5),
+      [pong(W(2)), pong(T(3), false), pong(S(7), false), pong(EAST, false), pong(W(9), false)],
+      [T(6), T(6)], T(6),
     ),
-    context: {},
-    expectedTai: 8,
+    context: { ...BASE_CTX },
+    expectedTai: 32,
     difficulty: 'hard',
-    hintZh: '清一色（取代混一色）',
-    hintEn: 'Full Flush (replaces Half Flush)',
+    hintZh: '對對胡(30) + 風牌(1) + 無花(1)',
+    hintEn: 'All Triplets(30) + Wind(1) + No Flowers(1)',
   },
 
-  // h2: 大三元 — Big Three Dragons (8 tai)
-  // Excludes Small Three Dragons + Dragon Triplets
+  // h2: 混一色(30) — wan+honors, with pure straight & dragon
+  //   HalfFlush(30)+OpenPureStraight(10)+WindTriplet(1)+DragonTriplet(2)+NoFlowers(1)=44
   {
     id: 'h2',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)], false), pong(RED, false), pong(GREEN, false), pong(WHITE, false)],
-      [S(5), S(5)], S(5),
+      [chi([W(1), W(2), W(3)]), chi([W(4), W(5), W(6)], false), chi([W(7), W(8), W(9)], false), pong(EAST, false), pong(RED, false)],
+      [W(6), W(6)], W(6),
     ),
-    context: {},
-    expectedTai: 8,
+    context: { ...BASE_CTX },
+    expectedTai: 44,
     difficulty: 'hard',
-    hintZh: '大三元（取代小三元及三元牌）',
-    hintEn: 'Big Three Dragons (replaces Small Three Dragons)',
+    hintZh: '混一色(30) + 明龍(10) + 風牌(1) + 中發白(2) + 無花(1)',
+    hintEn: 'Half Flush(30) + Pure Straight(10) + Wind(1) + Dragon(2) + No Flowers(1)',
   },
 
-  // h3: 小四喜 — Small Four Winds (8 tai)
-  // 3 wind pongs + wind pair; set context to avoid wind bonuses
+  // h3: 清一色(80) + NonMatchingFlower(1) = 81
+  //   All tong. Flower avoids NoHonorsNoFlowers. Starts: 2,5,3,6 — no straight
   {
     id: 'h3',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)], false), pong(EAST, false), pong(WEST, false), pong(NORTH, false)],
-      [SOUTH, SOUTH], SOUTH,
+      [chi([T(2), T(3), T(4)]), chi([T(5), T(6), T(7)], false), pong(T(9), false), chi([T(3), T(4), T(5)], false), chi([T(6), T(7), T(8)], false)],
+      [T(1), T(1)], T(1),
     ),
-    context: { roundWind: Wind.South, seatWind: Wind.South },
-    expectedTai: 8,
+    context: { ...BASE_CTX, flowers: [flowerTile(FlowerType.Spring)] },
+    expectedTai: 81,
     difficulty: 'hard',
-    hintZh: '小四喜（三風刻＋一風眼）',
-    hintEn: 'Small Four Winds',
+    hintZh: '清一色(80) + 爛花(1)',
+    hintEn: 'Full Flush(80) + Non-Matching Flower(1)',
   },
 
-  // h4: 四槓牌＋碰碰胡 — Four Kongs + All Triplets (12 tai = 8+4)
+  // h4: 大三元(40) + NoFlowers(1) = 41
   {
     id: 'h4',
     hand: createHand(
-      [kong(W(1), MeldType.Kong), kong(T(3), MeldType.Kong), kong(S(5), MeldType.Kong), kong(W(7), MeldType.ConcealedKong), pong(T(9), false)],
-      [S(1), S(1)], S(1),
+      [chi([W(2), W(3), W(4)]), pong(RED, false), pong(GREEN, false), pong(WHITE, false), chi([T(5), T(6), T(7)], false)],
+      [S(6), S(6)], S(6),
     ),
-    context: {},
-    expectedTai: 12,
+    context: { ...BASE_CTX },
+    expectedTai: 41,
     difficulty: 'hard',
-    hintZh: '四槓牌＋碰碰胡',
-    hintEn: 'Four Kongs + All Triplets',
+    hintZh: '大三元(40) + 無花(1)',
+    hintEn: 'Big Three Dragons(40) + No Flowers(1)',
   },
 
-  // h5: 七搶一＋花槓＋正花 — Seven Rob One combo (12 tai = 8+2+1+1)
+  // h5: 大四喜(80) + 缺一門(5) + NoFlowers(1) = 86
+  //   4 wind pongs + chi(W234) + pair T(6) → 2 suits
   {
     id: 'h5',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: {
-      seatWind: Wind.East,
-      flowers: [
-        flowerTile(FlowerType.Spring), flowerTile(FlowerType.Summer),
-        flowerTile(FlowerType.Autumn), flowerTile(FlowerType.Winter),
-        flowerTile(FlowerType.Plum), flowerTile(FlowerType.Orchid),
-        flowerTile(FlowerType.Chrysanthemum),
-      ],
-    },
-    expectedTai: 12,
+    hand: createHand(
+      [chi([W(2), W(3), W(4)]), pong(EAST, false), pong(SOUTH, false), pong(WEST, false), pong(NORTH, false)],
+      [T(6), T(6)], T(6),
+    ),
+    context: { ...BASE_CTX },
+    expectedTai: 86,
     difficulty: 'hard',
-    hintZh: '七搶一＋花槓（四季）＋正花×2',
-    hintEn: 'Seven Rob One + Flower Group + 2× Matching Flower',
+    hintZh: '大四喜(80) + 缺一門(5) + 無花(1)',
+    hintEn: 'Big Four Winds(80) + Missing One Suit(5) + No Flowers(1)',
   },
 
-  // h6: 八朵花 combo — Eight Flowers (14 tai = 8+2+2+1+1)
+  // h6: 全求人(15) — all open, discard win + WindTriplet(1) + NoFlowers(1) = 17
   {
     id: 'h6',
-    hand: createHand([...baseHand()], [S(5), S(5)], S(5)),
-    context: {
-      seatWind: Wind.East,
-      flowers: [
-        flowerTile(FlowerType.Spring), flowerTile(FlowerType.Summer),
-        flowerTile(FlowerType.Autumn), flowerTile(FlowerType.Winter),
-        flowerTile(FlowerType.Plum), flowerTile(FlowerType.Orchid),
-        flowerTile(FlowerType.Chrysanthemum), flowerTile(FlowerType.Bamboo),
-      ],
-    },
-    expectedTai: 14,
+    hand: createHand(
+      [chi([W(2), W(3), W(4)], false), chi([T(4), T(5), T(6)], false), chi([S(6), S(7), S(8)], false), pong(EAST, false), chi([T(1), T(2), T(3)], false)],
+      BASE_PAIR, W(6),
+    ),
+    context: { ...BASE_CTX, isSelfDraw: false },
+    expectedTai: 17,
     difficulty: 'hard',
-    hintZh: '八朵花＋花槓×2＋正花×2',
-    hintEn: 'Eight Flowers + 2× Flower Group + 2× Matching Flower',
+    hintZh: '全求人(15) + 風牌(1) + 無花(1)',
+    hintEn: 'Fully Open(15) + Wind(1) + No Flowers(1)',
   },
 
-  // h7: 五暗刻＋碰碰胡＋門清自摸 — 5CT + AllTriplets + CSD (15 tai = 8+4+3)
+  // h7: 海底撈月(20) + 自摸(1) + WindTriplet(1) + NoFlowers(1) = 23
   {
     id: 'h7',
-    hand: createHand(
-      [pong(W(1)), pong(T(3)), pong(S(5)), pong(W(7)), pong(T(9))],
-      [S(1), S(1)], S(1),
-    ),
-    context: { isSelfDraw: true },
-    expectedTai: 15,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: { ...BASE_CTX, isSelfDraw: true, isLastTileSelfDraw: true },
+    expectedTai: 23,
     difficulty: 'hard',
-    hintZh: '五暗刻＋碰碰胡＋門清自摸',
-    hintEn: '5 Concealed Triplets + All Triplets + Concealed Self-Draw',
+    hintZh: '海底撈月(20) + 自摸(1) + 風牌(1) + 無花(1)',
+    hintEn: 'Last Draw(20) + Self-Draw(1) + Wind(1) + No Flowers(1)',
   },
 
-  // h8: 大四喜 — Big Four Winds (16 tai)
-  // Excludes SmallFourWinds, RoundWind, SeatWind
+  // h8: 天胡(100) — concealed, dealer, self draw
+  //   HeavenlyHand(100)+ConcealedSelfDraw(5)+Dealer(1)+WindTriplet(1)+NoFlowers(1)=108
   {
     id: 'h8',
     hand: createHand(
-      [pong(EAST, false), pong(SOUTH, false), pong(WEST, false), pong(NORTH, false), chi([W(1), W(2), W(3)])],
-      [T(5), T(5)], T(5),
+      [chi([W(2), W(3), W(4)]), chi([T(4), T(5), T(6)]), chi([S(6), S(7), S(8)]), pong(EAST), chi([T(1), T(2), T(3)])],
+      BASE_PAIR, W(6),
     ),
-    context: { roundWind: Wind.East, seatWind: Wind.South },
-    expectedTai: 16,
+    context: { ...BASE_CTX, isHeavenlyHand: true, isDealer: true, dealerStreak: 0, isSelfDraw: true },
+    expectedTai: 108,
     difficulty: 'hard',
-    hintZh: '大四喜（取代小四喜、圈風、門風）',
-    hintEn: 'Big Four Winds (replaces Small Four Winds + wind tai)',
+    hintZh: '天胡(100) + 門清自摸(5) + 莊家(1) + 風牌(1) + 無花(1)',
+    hintEn: 'Heavenly(100) + Concealed SD(5) + Dealer(1) + Wind(1) + No Flowers(1)',
   },
 
-  // h9: 地胡＋門清自摸 — Earthly Hand + CSD (19 tai = 16+3)
+  // h9: 一台花(10) — four seasons + WindTriplet(1) = 11
   {
     id: 'h9',
-    hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)]), chi([S(2), S(3), S(4)]), pong(W(9)), chi([T(7), T(8), T(9)])],
-      [S(5), S(5)], S(5),
-    ),
-    context: { isSelfDraw: true, isEarthlyHand: true },
-    expectedTai: 19,
+    hand: createHand([...baseMelds()], BASE_PAIR, W(6)),
+    context: {
+      ...BASE_CTX,
+      flowers: [
+        flowerTile(FlowerType.Spring), flowerTile(FlowerType.Summer),
+        flowerTile(FlowerType.Autumn), flowerTile(FlowerType.Winter),
+      ],
+    },
+    expectedTai: 11,
     difficulty: 'hard',
-    hintZh: '地胡＋門清自摸',
-    hintEn: 'Earthly Hand + Concealed Self-Draw',
+    hintZh: '一台花(10) + 風牌(1)',
+    hintEn: 'Flower Group(10) + Wind Triplet(1)',
   },
 
-  // h10: 天胡＋莊家＋門清自摸 — Heavenly Hand combo (36 tai = 32+1+3)
+  // h10: 間間胡(100) — concealed all-pongs self-draw
+  //   AllConcealedTripletsSD(100) + WindTriplet(1) + NoFlowers(1) = 102
+  //   S(1) instead of W(1) avoids OldAndYoung with W(9)
   {
     id: 'h10',
     hand: createHand(
-      [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)]), chi([S(2), S(3), S(4)]), pong(W(9)), chi([T(7), T(8), T(9)])],
-      [S(5), S(5)], S(5),
+      [pong(S(1)), pong(T(3)), pong(S(7)), pong(EAST), pong(W(9))],
+      [T(6), T(6)], T(6),
     ),
-    context: { isSelfDraw: true, isDealer: true, dealerStreak: 0, isHeavenlyHand: true },
-    expectedTai: 36,
+    context: { ...BASE_CTX, isSelfDraw: true },
+    expectedTai: 102,
     difficulty: 'hard',
-    hintZh: '天胡＋莊家＋門清自摸',
-    hintEn: 'Heavenly Hand + Dealer + Concealed Self-Draw',
+    hintZh: '間間胡(100) + 風牌(1) + 無花(1)',
+    hintEn: 'All Concealed Triplets SD(100) + Wind(1) + No Flowers(1)',
   },
 ];

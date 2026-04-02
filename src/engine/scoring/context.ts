@@ -38,6 +38,26 @@ export interface GameContext {
   /** Whether a non-dealer won off the dealer's very first discard (地胡) */
   isEarthlyHand: boolean;
 
+  /** Whether this is a 人胡 (non-dealer wins within first 4 discards) */
+  isHumanHand: boolean;
+
+  /** Whether the player declared ready (聽牌) */
+  isReady: boolean;
+
+  /** Whether waiting on a double pong (對碰) */
+  isDoublePongWait: boolean;
+
+  /** Whether win came from kong-on-kong (摃上摃) */
+  isKongOnKong: boolean;
+
+  /** Number of concealed tiles drawn before winning (for 七只內/十只內) */
+  tilesDrawn?: number;
+
+  /** Special hand patterns that don't decompose into standard melds */
+  isThirteenOrphans: boolean;
+  isSixteenUnrelated: boolean;
+  isEightPairs: boolean;
+
   /** The player's flower tiles (collected beside the hand) */
   flowers: FlowerTile[];
 }
@@ -56,6 +76,13 @@ export function defaultContext(overrides?: Partial<GameContext>): GameContext {
     isRobbingKong: false,
     isHeavenlyHand: false,
     isEarthlyHand: false,
+    isHumanHand: false,
+    isReady: false,
+    isDoublePongWait: false,
+    isKongOnKong: false,
+    isThirteenOrphans: false,
+    isSixteenUnrelated: false,
+    isEightPairs: false,
     flowers: [],
     ...overrides,
   };

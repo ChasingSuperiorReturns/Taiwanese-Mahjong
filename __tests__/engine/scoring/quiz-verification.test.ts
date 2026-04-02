@@ -9,6 +9,9 @@ describe('Quiz scenario expected tai values', () => {
     test(`${scenario.id}: ${scenario.hintEn} = ${scenario.expectedTai} tai`, () => {
       const score = calculateScore(scenario.hand, scenario.context);
       const breakdown = score.results.map(r => `${r.ruleId}(${r.tai})`).join(' + ');
+      if (score.totalTai !== scenario.expectedTai) {
+        console.log(`  ${scenario.id}: got=${score.totalTai} expected=${scenario.expectedTai} breakdown=${breakdown}`);
+      }
       expect({ total: score.totalTai, breakdown }).toEqual({
         total: scenario.expectedTai,
         breakdown: expect.any(String),

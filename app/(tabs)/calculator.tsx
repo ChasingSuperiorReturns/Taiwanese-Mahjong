@@ -56,6 +56,9 @@ export default function CalculatorScreen() {
   const [isLastTileSelfDraw, setIsLastTileSelfDraw] = useState(false);
   const [isAfterKong, setIsAfterKong] = useState(false);
   const [isRobbingKong, setIsRobbingKong] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [isDoublePongWait, setIsDoublePongWait] = useState(false);
+  const [isKongOnKong, setIsKongOnKong] = useState(false);
 
   // Results
   const [result, setResult] = useState<ScoreBreakdown | null>(null);
@@ -122,6 +125,9 @@ export default function CalculatorScreen() {
     setIsLastTileSelfDraw(false);
     setIsAfterKong(false);
     setIsRobbingKong(false);
+    setIsReady(false);
+    setIsDoublePongWait(false);
+    setIsKongOnKong(false);
   };
 
   const doCalculate = () => {
@@ -173,6 +179,9 @@ export default function CalculatorScreen() {
       isLastTileSelfDraw,
       isAfterKong,
       isRobbingKong,
+      isReady,
+      isDoublePongWait,
+      isKongOnKong,
     };
 
     const score = calculateScore(hand, ctx);
@@ -315,6 +324,9 @@ export default function CalculatorScreen() {
         <ToggleRow label="海底撈月 Last self-draw" value={isLastTileSelfDraw} onToggle={setIsLastTileSelfDraw} colors={colors} />
         <ToggleRow label="槓上開花 Win after kong" value={isAfterKong} onToggle={setIsAfterKong} colors={colors} />
         <ToggleRow label="搶槓 Robbing kong" value={isRobbingKong} onToggle={setIsRobbingKong} colors={colors} />
+        <ToggleRow label="聽牌 Ready (Ting)" value={isReady} onToggle={setIsReady} colors={colors} />
+        <ToggleRow label="對碰 Double pong wait" value={isDoublePongWait} onToggle={setIsDoublePongWait} colors={colors} />
+        <ToggleRow label="摃上摃 Kong on kong" value={isKongOnKong} onToggle={setIsKongOnKong} colors={colors} />
 
         <View style={styles.windRow}>
           <Text style={[styles.toggleLabel, { color: colors.text }]}>圈風 Round</Text>
