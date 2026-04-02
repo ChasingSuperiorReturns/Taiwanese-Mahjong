@@ -22,29 +22,61 @@ const FLOWER_LABELS: Record<FlowerType, string> = {
   [FlowerType.Bamboo]: '竹',
 };
 
+const tileSizes = { sm: 28, md: 36, lg: 48 };
+
 export default function HandDisplay({ hand, flowers, showWinning = true, size = 'md' }: HandDisplayProps) {
   return (
     <View style={styles.container}>
       <View style={styles.melds}>
         {hand.melds.map((meld, mi) => (
           <View key={mi} style={styles.meldGroup}>
-            {!meld.isConcealed && (
+            {meld.type === MeldType.ConcealedKong ? (
+              <View style={styles.concealedKongBadge}>
+                <Text style={styles.concealedKongText}>暗</Text>
+              </View>
+            ) : !meld.isConcealed ? (
               <View style={styles.openBadge}>
                 <Text style={styles.openText}>明</Text>
               </View>
-            )}
+            ) : null}
             <View style={styles.meldTiles}>
-              {meld.tiles.map((tile, ti) => (
-                <TileDisplay
-                  key={`${mi}-${ti}`}
-                  tile={tile}
-                  size={size}
-                  highlighted={showWinning && tilesEqual(tile, hand.winningTile) && isLastMatch(meld.tiles, hand.winningTile, ti)}
-                />
-              ))}
+              {meld.type === MeldType.ConcealedKong ? (
+                <>
+                  {/* Concealed kong: show first tile face-down, middle two face-up, last face-down */}
+                  <View style={[styles.faceDownTile, { width: tileSizes[size], height: tileSizes[size] * 1.35 }]}>
+                    <Text style={styles.faceDownText}>🀫</Text>
+                  </View>
+                  <TileDisplay
+                    key={`${mi}-1`}
+                    tile={meld.tiles[1]}
+                    size={size}
+                    highlighted={showWinning && tilesEqual(meld.tiles[1], hand.winningTile) && isLastMatch(meld.tiles, hand.winningTile, 1)}
+                  />
+                  <TileDisplay
+                    key={`${mi}-2`}
+                    tile={meld.tiles[2]}
+                    size={size}
+                    highlighted={showWinning && tilesEqual(meld.tiles[2], hand.winningTile) && isLastMatch(meld.tiles, hand.winningTile, 2)}
+                  />
+                  <View style={[styles.faceDownTile, { width: tileSizes[size], height: tileSizes[size] * 1.35 }]}>
+                    <Text style={styles.faceDownText}>🀫</Text>
+                  </View>
+                </>
+              ) : (
+                meld.tiles.map((tile, ti) => (
+                  <TileDisplay
+                    key={`${mi}-${ti}`}
+                    tile={tile}
+                    size={size}
+                    highlighted={showWinning && tilesEqual(tile, hand.winningTile) && isLastMatch(meld.tiles, hand.winningTile, ti)}
+                  />
+                ))
+              )}
             </View>
             {(meld.type === MeldType.Kong || meld.type === MeldType.ConcealedKong || meld.type === MeldType.AddedKong) && (
-              <Text style={styles.kongLabel}>槓</Text>
+              <Text style={styles.kongLabel}>
+                {meld.type === MeldType.ConcealedKong ? '暗槓' : '槓'}
+              </Text>
             )}
           </View>
         ))}
@@ -112,6 +144,27 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#8a7a4a',
     fontWeight: '600',
+  },
+  concealedKongBadge: {
+    backgroundColor: '#4a4a5a',
+    borderRadius: 3,
+    paddingHorizontal: 4,
+  },
+  concealedKongText: {
+    fontSize: 9,
+    color: '#e0d8c8',
+    fontWeight: '700',
+  },
+  faceDownTile: {
+    backgroundColor: '#2a5a3a',
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#1a3a2a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faceDownText: {
+    fontSize: 14,
   },
   kongLabel: {
     fontSize: 9,
