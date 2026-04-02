@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Svg, { Circle, Rect, Ellipse, G, Line, Path } from 'react-native-svg';
 import { PlayTile, Suit, Dragon } from '@/src/engine/tiles';
 
 interface TileDisplayProps {
@@ -57,53 +58,81 @@ function getTileColor(tile: PlayTile): string {
 }
 
 const SIZES = {
-  sm: { w: 28, h: 36, main: 14, sub: 8, coin: 6, stick: { w: 3, h: 10 }, pad: 1 },
-  md: { w: 36, h: 48, main: 18, sub: 10, coin: 8, stick: { w: 4, h: 13 }, pad: 1.5 },
-  lg: { w: 48, h: 64, main: 24, sub: 12, coin: 10, stick: { w: 5, h: 17 }, pad: 2 },
+  sm: { w: 28, h: 36, main: 14, sub: 8, svgW: 22, svgH: 28 },
+  md: { w: 36, h: 48, main: 18, sub: 10, svgW: 28, svgH: 38 },
+  lg: { w: 48, h: 64, main: 24, sub: 12, svgW: 38, svgH: 52 },
 };
 
-// ─── 筒 (Circles) — Traditional coin-style hollow rings ───
-// Layout: rows of circle counts per value
-const CIRCLE_ROWS: Record<number, number[]> = {
-  1: [1],
-  2: [1, 1],
-  3: [1, 1, 1],
-  4: [2, 2],
-  5: [2, 1, 2],
-  6: [2, 2, 2],
-  7: [3, 1, 3],
-  8: [3, 2, 3],
-  9: [3, 3, 3],
+// ─── 筒 (Circles) — Solid colored circles like real tiles ───
+// Grid positions for each value: [cx, cy] in a 100x100 viewBox
+const CIRCLE_POSITIONS: Record<number, [number, number][]> = {
+  1: [[50, 50]],
+  2: [[50, 30], [50, 70]],
+  3: [[50, 20], [50, 50], [50, 80]],
+  4: [[33, 33], [67, 33], [33, 67], [67, 67]],
+  5: [[30, 25], [70, 25], [50, 50], [30, 75], [70, 75]],
+  6: [[33, 22], [67, 22], [33, 50], [67, 50], [33, 78], [67, 78]],
+  7: [[30, 20], [70, 20], [30, 50], [50, 50], [70, 50], [30, 80], [70, 80]],
+  8: [[30, 18], [70, 18], [30, 40], [70, 40], [30, 62], [70, 62], [30, 84], [70, 84]],
+  9: [[25, 20], [50, 20], [75, 20], [25, 50], [50, 50], [75, 50], [25, 80], [50, 80], [75, 80]],
 };
 
-// Color for each circle, flattened order (top-left → bottom-right)
-const COIN_COLORS: Record<number, string[]> = {
-  1: ['#cc2222'],
-  2: ['#1a8a2a', '#cc2222'],
-  3: ['#1a5ea6', '#cc2222', '#1a8a2a'],
-  4: ['#cc2222', '#1a5ea6', '#1a8a2a', '#cc2222'],
-  5: ['#1a5ea6', '#1a8a2a', '#cc2222', '#1a8a2a', '#1a5ea6'],
-  6: ['#1a5ea6', '#1a8a2a', '#cc2222', '#1a5ea6', '#1a8a2a', '#cc2222'],
-  7: ['#1a5ea6', '#cc2222', '#1a8a2a', '#cc2222', '#1a8a2a', '#1a5ea6', '#cc2222'],
-  8: ['#1a5ea6', '#1a8a2a', '#cc2222', '#1a5ea6', '#cc2222', '#1a8a2a', '#1a5ea6', '#cc2222'],
-  9: ['#1a5ea6', '#1a8a2a', '#cc2222', '#1a8a2a', '#cc2222', '#1a5ea6', '#cc2222', '#1a8a2a', '#1a5ea6'],
+// Circle radius per value (bigger when fewer circles)
+const CIRCLE_RADII: Record<number, number> = {
+  1: 28, 2: 18, 3: 14, 4: 14, 5: 13, 6: 12, 7: 11, 8: 10, 9: 10,
 };
 
-// ─── 條 (Bamboo) — Traditional segmented sticks ───
-const BAMBOO_ROWS: Record<number, number[]> = {
-  1: [1],        // bird (special)
-  2: [2],
-  3: [3],
-  4: [2, 2],
-  5: [3, 2],
-  6: [3, 3],
-  7: [4, 3],
-  8: [4, 4],
-  9: [3, 3, 3],
+// Colors per circle — traditional Taiwanese pattern (red/green/blue mix)
+const CIRCLE_COLORS: Record<number, string[]> = {
+  1: ['#d42b2b'],
+  2: ['#1a8a2a', '#d42b2b'],
+  3: ['#1a8a2a', '#d42b2b', '#1a8a2a'],
+  4: ['#1a8a2a', '#d42b2b', '#d42b2b', '#1a8a2a'],
+  5: ['#1a8a2a', '#d42b2b', '#1a5ea6', '#d42b2b', '#1a8a2a'],
+  6: ['#1a8a2a', '#d42b2b', '#1a8a2a', '#d42b2b', '#1a8a2a', '#d42b2b'],
+  7: ['#1a8a2a', '#d42b2b', '#1a8a2a', '#1a5ea6', '#d42b2b', '#1a8a2a', '#d42b2b'],
+  8: ['#1a8a2a', '#d42b2b', '#1a8a2a', '#d42b2b', '#d42b2b', '#1a8a2a', '#d42b2b', '#1a8a2a'],
+  9: ['#1a8a2a', '#d42b2b', '#1a8a2a', '#d42b2b', '#1a5ea6', '#d42b2b', '#1a8a2a', '#d42b2b', '#1a8a2a'],
 };
 
-// Alternating green/blue for each stick, flattened
-const STICK_COLORS: Record<number, string[]> = {
+function CirclePattern({ value, size }: { value: number; size: 'sm' | 'md' | 'lg' }) {
+  const s = SIZES[size];
+  const positions = CIRCLE_POSITIONS[value];
+  const r = CIRCLE_RADII[value];
+  const colors = CIRCLE_COLORS[value];
+  const ringW = Math.max(2, r * 0.28);
+
+  return (
+    <Svg width={s.svgW} height={s.svgH} viewBox="0 0 100 100">
+      {positions.map(([cx, cy], i) => (
+        <G key={i}>
+          {/* Solid filled circle with ring border */}
+          <Circle cx={cx} cy={cy} r={r} fill={colors[i]} />
+          {/* Inner ring for coin look */}
+          <Circle cx={cx} cy={cy} r={r - ringW} fill="none" stroke="#faf8f0" strokeWidth={ringW * 0.5} />
+          {/* Center dot */}
+          <Circle cx={cx} cy={cy} r={Math.max(1.5, r * 0.15)} fill="#faf8f0" />
+        </G>
+      ))}
+    </Svg>
+  );
+}
+
+// ─── 條 (Bamboo) — Thick segmented sticks ───
+// Stick positions: [cx] per row, rows stacked vertically
+const BAMBOO_LAYOUTS: Record<number, number[][]> = {
+  1: [[50]],           // bird
+  2: [[35, 65]],
+  3: [[25, 50, 75]],
+  4: [[35, 65], [35, 65]],
+  5: [[25, 50, 75], [35, 65]],
+  6: [[25, 50, 75], [25, 50, 75]],
+  7: [[20, 40, 60, 80], [30, 50, 70]],
+  8: [[20, 40, 60, 80], [20, 40, 60, 80]],
+  9: [[25, 50, 75], [25, 50, 75], [25, 50, 75]],
+};
+
+const BAMBOO_COLORS: Record<number, string[]> = {
   2: ['#1a8a2a', '#1a5ea6'],
   3: ['#1a5ea6', '#1a8a2a', '#1a5ea6'],
   4: ['#1a8a2a', '#1a5ea6', '#1a5ea6', '#1a8a2a'],
@@ -114,193 +143,87 @@ const STICK_COLORS: Record<number, string[]> = {
   9: ['#1a5ea6', '#1a8a2a', '#1a5ea6', '#1a8a2a', '#1a5ea6', '#1a8a2a', '#1a5ea6', '#1a8a2a', '#1a5ea6'],
 };
 
-// ─── Circle (筒) sub-component — coin-style hollow ring ───
-function Coin({ diameter, color }: { diameter: number; color: string }) {
-  const border = Math.max(1.5, diameter * 0.2);
-  const innerD = Math.max(1, diameter * 0.25);
-  return (
-    <View style={{
-      width: diameter,
-      height: diameter,
-      borderRadius: diameter / 2,
-      borderWidth: border,
-      borderColor: color,
-      backgroundColor: 'transparent',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <View style={{
-        width: innerD,
-        height: innerD,
-        borderRadius: innerD / 2,
-        backgroundColor: color,
-      }} />
-    </View>
-  );
-}
-
-function CirclePattern({ value, size }: { value: number; size: 'sm' | 'md' | 'lg' }) {
-  const s = SIZES[size];
-  const rows = CIRCLE_ROWS[value];
-  const colors = COIN_COLORS[value];
-  const gap = s.pad;
-  // For 1筒: larger coin
-  const coinSize = value === 1 ? s.coin * 2.2 : s.coin;
-  let colorIdx = 0;
+function BambooStickSvg({ cx, cy, w, h, color }: { cx: number; cy: number; w: number; h: number; color: string }) {
+  const lighter = color === '#1a8a2a' ? '#3db85a' : '#4a9ad4';
+  const darker = color === '#1a8a2a' ? '#0d5e1a' : '#0c3a66';
+  const capH = h * 0.08;
+  const nodeH = h * 0.04;
 
   return (
-    <View style={patternStyles.patternContainer}>
-      {rows.map((count, rowIdx) => (
-        <View key={rowIdx} style={[patternStyles.patternRow, { gap }]}>
-          {Array.from({ length: count }).map((_, i) => {
-            const c = colors[colorIdx % colors.length];
-            colorIdx++;
-            return <Coin key={i} diameter={coinSize} color={c} />;
-          })}
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// ─── Bamboo (條) sub-component — segmented stick ───
-function BambooStick({ width, height, color }: { width: number; height: number; color: string }) {
-  const nodeH = Math.max(0.5, height * 0.06);
-  const capH = Math.max(1, height * 0.12);
-  const lighterColor = color === '#1a8a2a' ? '#4dc96f' : '#5ba3d9';
-  const capColor = color === '#1a8a2a' ? '#0f5a1a' : '#0e3d6e';
-
-  return (
-    <View style={{
-      width: width,
-      height: height,
-      borderRadius: width / 2.5,
-      backgroundColor: color,
-      overflow: 'hidden',
-      alignItems: 'center',
-    }}>
+    <G>
+      {/* Main body */}
+      <Rect x={cx - w / 2} y={cy - h / 2} width={w} height={h} rx={w / 3} fill={color} />
       {/* Top cap */}
-      <View style={{
-        position: 'absolute', top: 0,
-        width: width, height: capH,
-        borderRadius: capH / 2,
-        backgroundColor: capColor,
-      }} />
-      {/* Node 1 */}
-      <View style={{
-        position: 'absolute', top: height * 0.32,
-        width: width * 1.15, height: nodeH,
-        backgroundColor: lighterColor,
-      }} />
-      {/* Node 2 */}
-      <View style={{
-        position: 'absolute', top: height * 0.62,
-        width: width * 1.15, height: nodeH,
-        backgroundColor: lighterColor,
-      }} />
+      <Rect x={cx - w / 2} y={cy - h / 2} width={w} height={capH} rx={w / 4} fill={darker} />
       {/* Bottom cap */}
-      <View style={{
-        position: 'absolute', bottom: 0,
-        width: width, height: capH,
-        borderRadius: capH / 2,
-        backgroundColor: capColor,
-      }} />
-    </View>
+      <Rect x={cx - w / 2} y={cy + h / 2 - capH} width={w} height={capH} rx={w / 4} fill={darker} />
+      {/* Node lines */}
+      <Line x1={cx - w / 2} y1={cy - h * 0.12} x2={cx + w / 2} y2={cy - h * 0.12} stroke={lighter} strokeWidth={nodeH} />
+      <Line x1={cx - w / 2} y1={cy + h * 0.12} x2={cx + w / 2} y2={cy + h * 0.12} stroke={lighter} strokeWidth={nodeH} />
+    </G>
   );
 }
 
-// 1索: Stylized bird (sparrow) — the traditional design
-function BambooBird({ width, height }: { width: number; height: number }) {
-  const bodyW = width * 2.5;
-  const bodyH = height * 0.55;
-  const headD = bodyW * 0.45;
+// 1索: Simplified bird (sparrow) — SVG version
+function BambooBirdSvg() {
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', width: bodyW + 4, height }}>
-      {/* Head */}
-      <View style={{
-        width: headD, height: headD,
-        borderRadius: headD / 2,
-        backgroundColor: '#cc2222',
-        position: 'absolute', top: 0,
-        zIndex: 2,
-      }}>
-        {/* Eye */}
-        <View style={{
-          width: headD * 0.25, height: headD * 0.25,
-          borderRadius: headD * 0.125,
-          backgroundColor: '#fff',
-          position: 'absolute', right: headD * 0.2, top: headD * 0.25,
-        }} />
-      </View>
-      {/* Beak */}
-      <View style={{
-        position: 'absolute', top: headD * 0.35,
-        right: -1, zIndex: 3,
-        width: 0, height: 0,
-        borderLeftWidth: headD * 0.35,
-        borderTopWidth: headD * 0.15,
-        borderBottomWidth: headD * 0.15,
-        borderLeftColor: '#e8a020',
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-      }} />
+    <G>
       {/* Body */}
-      <View style={{
-        width: bodyW, height: bodyH,
-        borderRadius: bodyH / 2,
-        backgroundColor: '#1a8a2a',
-        position: 'absolute', bottom: height * 0.15,
-      }} />
-      {/* Wing stripe */}
-      <View style={{
-        width: bodyW * 0.6, height: bodyH * 0.2,
-        borderRadius: bodyH * 0.1,
-        backgroundColor: '#4dc96f',
-        position: 'absolute', bottom: height * 0.15 + bodyH * 0.3,
-      }} />
-      {/* Tail feathers */}
-      <View style={{
-        width: bodyW * 0.4, height: bodyH * 0.5,
-        borderRadius: 2,
-        backgroundColor: '#1a5ea6',
-        position: 'absolute', bottom: height * 0.15 + bodyH * 0.3,
-        left: -bodyW * 0.1,
-        transform: [{ rotate: '-20deg' }],
-      }} />
-    </View>
+      <Ellipse cx={50} cy={58} rx={22} ry={16} fill="#1a8a2a" />
+      {/* Wing */}
+      <Ellipse cx={42} cy={54} rx={14} ry={8} fill="#3db85a" />
+      {/* Head */}
+      <Circle cx={65} cy={38} r={12} fill="#d42b2b" />
+      {/* Eye */}
+      <Circle cx={68} cy={36} r={2.5} fill="white" />
+      <Circle cx={69} cy={36} r={1} fill="black" />
+      {/* Beak */}
+      <Path d="M 76 39 L 84 38 L 76 42 Z" fill="#e8a020" />
+      {/* Tail */}
+      <Path d="M 28 52 L 18 38 L 24 36 L 34 48 Z" fill="#1a5ea6" />
+      <Path d="M 26 56 L 14 46 L 20 44 L 32 52 Z" fill="#0d5e1a" />
+    </G>
   );
 }
 
 function BambooPattern({ value, size }: { value: number; size: 'sm' | 'md' | 'lg' }) {
   const s = SIZES[size];
-  const { w: sw, h: sh } = s.stick;
-  const gap = s.pad;
+  const layout = BAMBOO_LAYOUTS[value];
 
-  // Special: 1索 is the bird
   if (value === 1) {
     return (
-      <View style={patternStyles.patternContainer}>
-        <BambooBird width={sw} height={sh} />
-      </View>
+      <Svg width={s.svgW} height={s.svgH} viewBox="0 0 100 100">
+        <BambooBirdSvg />
+      </Svg>
     );
   }
 
-  const rows = BAMBOO_ROWS[value];
-  const colors = STICK_COLORS[value];
+  const colors = BAMBOO_COLORS[value];
+  const numRows = layout.length;
+  // Calculate stick dimensions to fill the space
+  const stickH = numRows <= 2 ? 36 : 26;
+  const stickW = 10;
+  const rowSpacing = 100 / (numRows + 1);
   let colorIdx = 0;
 
   return (
-    <View style={patternStyles.patternContainer}>
-      {rows.map((count, rowIdx) => (
-        <View key={rowIdx} style={[patternStyles.patternRow, { gap: gap + 1 }]}>
-          {Array.from({ length: count }).map((_, i) => {
-            const c = colors[colorIdx % colors.length];
-            colorIdx++;
-            return <BambooStick key={i} width={sw} height={sh} color={c} />;
-          })}
-        </View>
-      ))}
-    </View>
+    <Svg width={s.svgW} height={s.svgH} viewBox="0 0 100 100">
+      {layout.map((row, rowIdx) => {
+        const cy = rowSpacing * (rowIdx + 1);
+        return row.map((cx, i) => {
+          const c = colors[colorIdx % colors.length];
+          colorIdx++;
+          return (
+            <BambooStickSvg
+              key={`${rowIdx}-${i}`}
+              cx={cx} cy={cy}
+              w={stickW} h={stickH}
+              color={c}
+            />
+          );
+        });
+      })}
+    </Svg>
   );
 }
 
@@ -348,20 +271,6 @@ export default function TileDisplay({ tile, size = 'md', highlighted = false }: 
 }
 
 export { TILE_LABELS, getTileKey };
-
-const patternStyles = StyleSheet.create({
-  patternContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 1,
-  },
-  patternRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 const styles = StyleSheet.create({
   tile: {
