@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle, Rect, Ellipse, G, Line, Path } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line, Path } from 'react-native-svg';
 import { PlayTile, Suit, Dragon } from '@/src/engine/tiles';
 
 interface TileDisplayProps {
@@ -92,54 +92,61 @@ const CIRCLE_R: Record<number, number> = {
   1: 30, 2: 17, 3: 14, 4: 14, 5: 13, 6: 12, 7: 11, 8: 10, 9: 10,
 };
 
-/** Single concentric-ring coin — all green */
+/** Single concentric-ring coin — thin delicate green outlines like traditional tiles */
 function CoinSvg({ cx, cy, r }: { cx: number; cy: number; r: number }) {
-  const outerStroke = Math.max(1.8, r * 0.2);
-  const innerR = r * 0.55;
-  const innerStroke = Math.max(1.2, r * 0.15);
-  const dotR = Math.max(1, r * 0.15);
+  const outerStroke = Math.max(1, r * 0.1);
+  const midR = r * 0.65;
+  const midStroke = Math.max(0.8, r * 0.08);
+  const innerR = r * 0.35;
+  const innerStroke = Math.max(0.6, r * 0.07);
+  const dotR = Math.max(0.8, r * 0.1);
   return (
     <G>
       <Circle cx={cx} cy={cy} r={r} fill={CREAM} stroke={DARK_GREEN} strokeWidth={outerStroke} />
+      <Circle cx={cx} cy={cy} r={midR} fill={CREAM} stroke={DARK_GREEN} strokeWidth={midStroke} />
       <Circle cx={cx} cy={cy} r={innerR} fill={CREAM} stroke={DARK_GREEN} strokeWidth={innerStroke} />
       <Circle cx={cx} cy={cy} r={dotR} fill={DARK_GREEN} />
     </G>
   );
 }
 
-/** 1筒: Ornate rosette/medallion — green outer with red center */
+/** 1筒: Ornate rosette/medallion — traditional decorative coin */
 function Rosette1Svg() {
-  const petals = 12;
-  const elements = [];
-  // Decorative spokes
+  const petals = 16;
+  const spokeElements = [];
+  // Fine decorative spokes radiating from center
   for (let i = 0; i < petals; i++) {
     const angle = (i * 360) / petals;
     const rad = (angle * Math.PI) / 180;
-    const x1 = 50 + 14 * Math.cos(rad);
-    const y1 = 50 + 14 * Math.sin(rad);
-    const x2 = 50 + 26 * Math.cos(rad);
-    const y2 = 50 + 26 * Math.sin(rad);
-    elements.push(
-      <Line key={`spoke-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={DARK_GREEN} strokeWidth={2} />
+    const x1 = 50 + 12 * Math.cos(rad);
+    const y1 = 50 + 12 * Math.sin(rad);
+    const x2 = 50 + 24 * Math.cos(rad);
+    const y2 = 50 + 24 * Math.sin(rad);
+    spokeElements.push(
+      <Line key={`spoke-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={DARK_GREEN} strokeWidth={1.2} />
     );
   }
-  // Petal dots at tips
+  // Small decorative dots between rings
+  const dotElements = [];
   for (let i = 0; i < 8; i++) {
-    const angle = (i * 360) / 8;
+    const angle = (i * 360) / 8 + 22.5;
     const rad = (angle * Math.PI) / 180;
-    const x = 50 + 24 * Math.cos(rad);
-    const y = 50 + 24 * Math.sin(rad);
-    elements.push(
-      <Circle key={`petal-${i}`} cx={x} cy={y} r={3.5} fill={GREEN} stroke={DARK_GREEN} strokeWidth={1} />
+    const x = 50 + 20 * Math.cos(rad);
+    const y = 50 + 20 * Math.sin(rad);
+    dotElements.push(
+      <Circle key={`dot-${i}`} cx={x} cy={y} r={2} fill={GREEN} />
     );
   }
   return (
     <G>
-      <Circle cx={50} cy={50} r={30} fill={CREAM} stroke={DARK_GREEN} strokeWidth={3} />
-      <Circle cx={50} cy={50} r={26} fill={CREAM} stroke={DARK_GREEN} strokeWidth={1.5} />
-      {elements}
-      <Circle cx={50} cy={50} r={14} fill={CREAM} stroke={GREEN} strokeWidth={2.5} />
-      <Circle cx={50} cy={50} r={9} fill={CREAM} stroke={RED} strokeWidth={2} />
+      {/* Outer rings */}
+      <Circle cx={50} cy={50} r={32} fill={CREAM} stroke={DARK_GREEN} strokeWidth={1.5} />
+      <Circle cx={50} cy={50} r={28} fill={CREAM} stroke={DARK_GREEN} strokeWidth={1} />
+      {spokeElements}
+      {dotElements}
+      {/* Inner rings */}
+      <Circle cx={50} cy={50} r={12} fill={CREAM} stroke={GREEN} strokeWidth={1.5} />
+      <Circle cx={50} cy={50} r={8} fill={CREAM} stroke={RED} strokeWidth={1.2} />
       <Circle cx={50} cy={50} r={4} fill={RED} />
     </G>
   );
@@ -166,9 +173,9 @@ function CirclePattern({ value, size }: { value: number; size: 'sm' | 'md' | 'lg
 }
 
 // ═══════════════════════════════════════════════
-// 條 (Bamboo/Sticks) — Vertical bamboo segments
-// Each stick: tall capsule with horizontal node lines
-// All uniform green — matches traditional Taiwanese tiles
+// 條 (Bamboo/Sticks) — Two parallel vertical lines
+// with horizontal crossbar rungs and circle caps
+// Matches traditional Taiwanese tile artwork
 // ═══════════════════════════════════════════════
 
 // X positions of sticks per row, in a 100×100 viewBox
@@ -183,69 +190,77 @@ const BAMBOO_LAYOUT: Record<number, number[][]> = {
   9: [[25, 50, 75], [25, 50, 75], [25, 50, 75]],
 };
 
-/** Single bamboo stick — tall rounded rect with horizontal node notches */
+/** Single bamboo stick — two parallel vertical lines with horizontal rungs and circle caps */
 function BambooStickSvg({ cx, cy, h, w, color }: { cx: number; cy: number; h: number; w: number; color: string }) {
   const outline = color === RED ? DARK_RED : DARK_GREEN;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  const capH = h * 0.08;
-  const nodeY1 = cy - h * 0.15;
-  const nodeY2 = cy + h * 0.15;
+  const gap = w * 0.45; // half-distance between the two parallel lines
+  const x1 = cx - gap;
+  const x2 = cx + gap;
+  const top = cy - h / 2;
+  const bot = cy + h / 2;
+  const capR = gap * 0.9; // radius of end caps
+  const strokeW = Math.max(0.8, w * 0.12);
+  const rungStrokeW = Math.max(0.6, w * 0.1);
+
+  // 4 evenly spaced rungs
+  const numRungs = 4;
+  const rungSpacing = h / (numRungs + 1);
+  const rungs = [];
+  for (let i = 1; i <= numRungs; i++) {
+    const ry = top + rungSpacing * i;
+    rungs.push(
+      <Line key={`rung-${i}`} x1={x1} y1={ry} x2={x2} y2={ry}
+        stroke={outline} strokeWidth={rungStrokeW} />
+    );
+  }
 
   return (
     <G>
-      {/* Main stick body — rounded rectangle */}
-      <Rect x={x} y={y} width={w} height={h} rx={w / 2} ry={w / 2}
-        fill={CREAM} stroke={outline} strokeWidth={1.6} />
-      {/* Top cap */}
-      <Rect x={x} y={y} width={w} height={capH} rx={w / 2} ry={w / 2}
-        fill={outline} />
-      {/* Bottom cap */}
-      <Rect x={x} y={y + h - capH} width={w} height={capH} rx={w / 2} ry={w / 2}
-        fill={outline} />
-      {/* Node line 1 */}
-      <Line x1={x + 1} y1={nodeY1} x2={x + w - 1} y2={nodeY1}
-        stroke={outline} strokeWidth={1.4} />
-      {/* Node line 2 */}
-      <Line x1={x + 1} y1={nodeY2} x2={x + w - 1} y2={nodeY2}
-        stroke={outline} strokeWidth={1.4} />
-      {/* Center dot between nodes */}
-      <Circle cx={cx} cy={cy} r={1.2} fill={color} />
+      {/* Top cap — small circle */}
+      <Circle cx={cx} cy={top} r={capR} fill={color} stroke={outline} strokeWidth={strokeW * 0.8} />
+      {/* Bottom cap — small circle */}
+      <Circle cx={cx} cy={bot} r={capR} fill={color} stroke={outline} strokeWidth={strokeW * 0.8} />
+      {/* Left vertical line */}
+      <Line x1={x1} y1={top} x2={x1} y2={bot} stroke={outline} strokeWidth={strokeW} />
+      {/* Right vertical line */}
+      <Line x1={x2} y1={top} x2={x2} y2={bot} stroke={outline} strokeWidth={strokeW} />
+      {/* Horizontal rungs */}
+      {rungs}
     </G>
   );
 }
 
-/** 1條: Traditional bird (sparrow/peacock) — all green */
+/** 1條: Traditional bird (sparrow/phoenix) — green body, red accents */
 function BambooBirdSvg() {
   return (
     <G>
-      {/* Tail feathers — sweeping curves */}
-      <Path d="M 38 55 C 20 40, 10 25, 18 18 C 22 14, 28 18, 35 30 C 38 35, 38 45, 38 55 Z"
+      {/* Tail feathers — flowing curves */}
+      <Path d="M 40 60 C 22 45, 12 28, 20 18 C 24 14, 30 20, 36 34 C 39 40, 40 50, 40 60 Z"
         fill={GREEN} stroke={DARK_GREEN} strokeWidth={0.8} />
-      <Path d="M 34 58 C 14 48, 5 32, 12 24 C 16 20, 22 26, 30 38 C 33 43, 34 50, 34 58 Z"
+      <Path d="M 36 62 C 16 50, 6 34, 14 25 C 18 21, 24 28, 32 42 C 35 47, 36 55, 36 62 Z"
         fill={DARK_GREEN} stroke={DARK_GREEN} strokeWidth={0.5} />
-      <Path d="M 42 52 C 26 38, 22 22, 28 16 C 32 12, 36 18, 40 32 C 42 38, 42 46, 42 52 Z"
-        fill="#3aaa4a" stroke={DARK_GREEN} strokeWidth={0.5} />
+      <Path d="M 44 56 C 28 42, 24 26, 30 18 C 34 14, 38 22, 42 36 C 44 42, 44 50, 44 56 Z"
+        fill="#2a9a3a" stroke={DARK_GREEN} strokeWidth={0.5} />
       {/* Body */}
-      <Ellipse cx={50} cy={60} rx={18} ry={13} fill={GREEN} stroke={DARK_GREEN} strokeWidth={1} />
-      {/* Wing */}
-      <Ellipse cx={46} cy={57} rx={11} ry={6} fill="#3aaa4a" stroke={DARK_GREEN} strokeWidth={0.6} />
+      <Ellipse cx={50} cy={60} rx={16} ry={12} fill={GREEN} stroke={DARK_GREEN} strokeWidth={1} />
+      {/* Wing detail */}
+      <Path d="M 42 56 Q 48 50 54 56 Q 48 54 42 56 Z" fill={DARK_GREEN} strokeWidth={0.3} />
+      {/* Neck */}
+      <Path d="M 56 52 Q 62 46 64 40" stroke={GREEN} strokeWidth={3} fill="none" />
       {/* Head */}
-      <Circle cx={64} cy={42} r={10} fill={RED} stroke={DARK_RED} strokeWidth={0.8} />
+      <Circle cx={64} cy={38} r={8} fill={RED} stroke={DARK_RED} strokeWidth={0.8} />
       {/* Eye */}
-      <Circle cx={67} cy={40} r={2.5} fill="white" />
-      <Circle cx={67.5} cy={39.5} r={1.2} fill="black" />
+      <Circle cx={67} cy={36} r={2} fill="white" />
+      <Circle cx={67.5} cy={35.5} r={1} fill="black" />
       {/* Beak */}
-      <Path d="M 73 43 L 82 41 L 73 46 Z" fill="#d4a020" stroke="#8a6a10" strokeWidth={0.5} />
-      {/* Crest */}
-      <Path d="M 60 33 Q 56 27 60 24 Q 64 22 62 28 Z" fill={RED} />
+      <Path d="M 71 39 L 80 37 L 72 42 Z" fill="#d4a020" stroke="#8a6a10" strokeWidth={0.5} />
       {/* Feet */}
-      <Line x1={44} y1={73} x2={40} y2={84} stroke={DARK_GREEN} strokeWidth={1.5} />
-      <Line x1={56} y1={73} x2={60} y2={84} stroke={DARK_GREEN} strokeWidth={1.5} />
-      <Line x1={40} y1={84} x2={36} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
-      <Line x1={40} y1={84} x2={43} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
-      <Line x1={60} y1={84} x2={57} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
-      <Line x1={60} y1={84} x2={64} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
+      <Line x1={45} y1={72} x2={42} y2={84} stroke={DARK_GREEN} strokeWidth={1.2} />
+      <Line x1={55} y1={72} x2={58} y2={84} stroke={DARK_GREEN} strokeWidth={1.2} />
+      <Line x1={42} y1={84} x2={38} y2={87} stroke={DARK_GREEN} strokeWidth={0.8} />
+      <Line x1={42} y1={84} x2={45} y2={87} stroke={DARK_GREEN} strokeWidth={0.8} />
+      <Line x1={58} y1={84} x2={55} y2={87} stroke={DARK_GREEN} strokeWidth={0.8} />
+      <Line x1={58} y1={84} x2={62} y2={87} stroke={DARK_GREEN} strokeWidth={0.8} />
     </G>
   );
 }
