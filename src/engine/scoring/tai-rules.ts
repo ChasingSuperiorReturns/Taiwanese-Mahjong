@@ -3,7 +3,7 @@
 // Source: https://twmahjong.com/
 
 import {
-  PlayTile, MeldType, Wind, Dragon, Suit, SuitValue,
+  PlayTile, Meld, MeldType, Wind, Dragon, Suit, SuitValue,
   isDragon, isWind, isSuit, isHonor, isTerminal,
   flowerMatchesWind, FlowerType, tileKey,
 } from '../tiles';
@@ -21,6 +21,8 @@ export interface TaiResult {
   tai: number;
   /** Descriptive label */
   label?: string;
+  /** Groups of tiles that triggered this rule (each inner array = one meld or tile group) */
+  evidenceTiles?: PlayTile[][];
 }
 
 type TaiRuleFn = (hand: Hand, ctx: GameContext) => TaiResult[] | null;
@@ -44,30 +46,30 @@ export const checkDealerStreak: TaiRuleFn = (_hand, ctx) => {
   return null;
 };
 
-export const checkSelfDraw: TaiRuleFn = (_hand, ctx) => {
+export const checkSelfDraw: TaiRuleFn = (hand, ctx) => {
   if (ctx.isSelfDraw) {
-    return [{ ruleId: TaiRuleId.SelfDraw, tai: 1 }];
+    return [{ ruleId: TaiRuleId.SelfDraw, tai: 1, evidenceTiles: [[hand.winningTile]] }];
   }
   return null;
 };
 
 export const checkConcealed: TaiRuleFn = (hand, ctx) => {
   if (hand.isConcealed && !ctx.isSelfDraw) {
-    return [{ ruleId: TaiRuleId.Concealed, tai: 3 }];
+    return [{ ruleId: TaiRuleId.Concealed, tai: 3, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
 
 export const checkConcealedSelfDraw: TaiRuleFn = (hand, ctx) => {
   if (hand.isConcealed && ctx.isSelfDraw) {
-    return [{ ruleId: TaiRuleId.ConcealedSelfDraw, tai: 5 }];
+    return [{ ruleId: TaiRuleId.ConcealedSelfDraw, tai: 5, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
 
 export const checkSingleWait: TaiRuleFn = (hand, _ctx) => {
   if (hand.isSingleWait) {
-    return [{ ruleId: TaiRuleId.SingleWait, tai: 2 }];
+    return [{ ruleId: TaiRuleId.SingleWait, tai: 2, evidenceTiles: [[hand.winningTile]] }];
   }
   return null;
 };
@@ -92,7 +94,7 @@ export const checkOpenKongBonus: TaiRuleFn = (hand, _ctx) => {
   const results: TaiResult[] = [];
   for (const meld of hand.melds) {
     if (meld.type === MeldType.Kong || meld.type === MeldType.AddedKong) {
-      results.push({ ruleId: TaiRuleId.OpenKongBonus, tai: 1, label: '明摃' });
+      results.push({ ruleId: TaiRuleId.OpenKongBonus, tai: 1, label: '明摃', evidenceTiles: [meld.tiles] });
     }
   }
   return results.length > 0 ? results : null;
@@ -102,7 +104,7 @@ export const checkConcealedKongBonus: TaiRuleFn = (hand, _ctx) => {
   const results: TaiResult[] = [];
   for (const meld of hand.melds) {
     if (meld.type === MeldType.ConcealedKong) {
-      results.push({ ruleId: TaiRuleId.ConcealedKongBonus, tai: 2, label: '暗摃' });
+      results.push({ ruleId: TaiRuleId.ConcealedKongBonus, tai: 2, label: '暗摃', evidenceTiles: [meld.tiles] });
     }
   }
   return results.length > 0 ? results : null;
@@ -110,21 +112,21 @@ export const checkConcealedKongBonus: TaiRuleFn = (hand, _ctx) => {
 
 export const checkNoHonors: TaiRuleFn = (hand, _ctx) => {
   if (!hasHonorTiles(hand)) {
-    return [{ ruleId: TaiRuleId.NoHonors, tai: 1 }];
+    return [{ ruleId: TaiRuleId.NoHonors, tai: 1, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
 
 export const checkNoHonorsNoFlowers: TaiRuleFn = (hand, ctx) => {
   if (!hasHonorTiles(hand) && ctx.flowers.length === 0) {
-    return [{ ruleId: TaiRuleId.NoHonorsNoFlowers, tai: 5 }];
+    return [{ ruleId: TaiRuleId.NoHonorsNoFlowers, tai: 5, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
 
 export const checkGrandPingHu: TaiRuleFn = (hand, ctx) => {
   if (!hasHonorTiles(hand) && ctx.flowers.length === 0 && isAllSequences(hand)) {
-    return [{ ruleId: TaiRuleId.GrandPingHu, tai: 10 }];
+    return [{ ruleId: TaiRuleId.GrandPingHu, tai: 10, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -132,7 +134,7 @@ export const checkGrandPingHu: TaiRuleFn = (hand, ctx) => {
 export const checkMissingOneSuit: TaiRuleFn = (hand, _ctx) => {
   const suits = getSuitsInHand(hand);
   if (suits.size === 2) {
-    return [{ ruleId: TaiRuleId.MissingOneSuit, tai: 5 }];
+    return [{ ruleId: TaiRuleId.MissingOneSuit, tai: 5, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -150,7 +152,7 @@ export const checkFiveTypes: TaiRuleFn = (hand, _ctx) => {
   }
 
   if (suits.size === 3 && hasWinds && hasDragons) {
-    return [{ ruleId: TaiRuleId.FiveTypes, tai: 10 }];
+    return [{ ruleId: TaiRuleId.FiveTypes, tai: 10, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -176,7 +178,12 @@ function getWindTriplets(hand: Hand): Wind[] {
 export const checkMatchingWindTriplet: TaiRuleFn = (hand, ctx) => {
   const winds = getWindTriplets(hand);
   if (winds.includes(ctx.seatWind)) {
-    return [{ ruleId: TaiRuleId.MatchingWindTriplet, tai: 2 }];
+    const meld = hand.melds.find(m =>
+      (m.type === MeldType.Pong || m.type === MeldType.Kong ||
+       m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) &&
+      m.tiles[0].kind === 'wind' && m.tiles[0].wind === ctx.seatWind
+    );
+    return [{ ruleId: TaiRuleId.MatchingWindTriplet, tai: 2, evidenceTiles: meld ? [meld.tiles] : undefined }];
   }
   return null;
 };
@@ -190,7 +197,12 @@ export const checkWindTriplet: TaiRuleFn = (hand, ctx) => {
         [Wind.East]: '東', [Wind.South]: '南',
         [Wind.West]: '西', [Wind.North]: '北',
       };
-      results.push({ ruleId: TaiRuleId.WindTriplet, tai: 1, label: `風牌 (${labels[w]})` });
+      const meld = hand.melds.find(m =>
+        (m.type === MeldType.Pong || m.type === MeldType.Kong ||
+         m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) &&
+        m.tiles[0].kind === 'wind' && m.tiles[0].wind === w
+      );
+      results.push({ ruleId: TaiRuleId.WindTriplet, tai: 1, label: `風牌 (${labels[w]})`, evidenceTiles: meld ? [meld.tiles] : undefined });
     }
   }
   return results.length > 0 ? results : null;
@@ -200,7 +212,12 @@ export const checkSmallThreeWinds: TaiRuleFn = (hand, _ctx) => {
   const windTriplets = new Set(getWindTriplets(hand));
   const pairWind = hand.pair[0].kind === 'wind' ? hand.pair[0].wind : null;
   if (windTriplets.size === 2 && pairWind !== null && !windTriplets.has(pairWind)) {
-    return [{ ruleId: TaiRuleId.SmallThreeWinds, tai: 15 }];
+    const windMelds = hand.melds.filter(m =>
+      (m.type === MeldType.Pong || m.type === MeldType.Kong ||
+       m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) &&
+      m.tiles[0].kind === 'wind'
+    );
+    return [{ ruleId: TaiRuleId.SmallThreeWinds, tai: 15, evidenceTiles: [...windMelds.map(m => m.tiles), hand.pair] }];
   }
   return null;
 };
@@ -208,7 +225,12 @@ export const checkSmallThreeWinds: TaiRuleFn = (hand, _ctx) => {
 export const checkBigThreeWinds: TaiRuleFn = (hand, _ctx) => {
   const windTriplets = new Set(getWindTriplets(hand));
   if (windTriplets.size === 3) {
-    return [{ ruleId: TaiRuleId.BigThreeWinds, tai: 30 }];
+    const windMelds = hand.melds.filter(m =>
+      (m.type === MeldType.Pong || m.type === MeldType.Kong ||
+       m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) &&
+      m.tiles[0].kind === 'wind'
+    );
+    return [{ ruleId: TaiRuleId.BigThreeWinds, tai: 30, evidenceTiles: windMelds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -217,7 +239,12 @@ export const checkSmallFourWinds: TaiRuleFn = (hand, _ctx) => {
   const windTriplets = new Set(getWindTriplets(hand));
   const pairWind = hand.pair[0].kind === 'wind' ? hand.pair[0].wind : null;
   if (windTriplets.size === 3 && pairWind !== null && !windTriplets.has(pairWind)) {
-    return [{ ruleId: TaiRuleId.SmallFourWinds, tai: 60 }];
+    const windMelds = hand.melds.filter(m =>
+      (m.type === MeldType.Pong || m.type === MeldType.Kong ||
+       m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) &&
+      m.tiles[0].kind === 'wind'
+    );
+    return [{ ruleId: TaiRuleId.SmallFourWinds, tai: 60, evidenceTiles: [...windMelds.map(m => m.tiles), hand.pair] }];
   }
   return null;
 };
@@ -225,7 +252,12 @@ export const checkSmallFourWinds: TaiRuleFn = (hand, _ctx) => {
 export const checkBigFourWinds: TaiRuleFn = (hand, _ctx) => {
   const windTriplets = new Set(getWindTriplets(hand));
   if (windTriplets.size === 4) {
-    return [{ ruleId: TaiRuleId.BigFourWinds, tai: 80 }];
+    const windMelds = hand.melds.filter(m =>
+      (m.type === MeldType.Pong || m.type === MeldType.Kong ||
+       m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) &&
+      m.tiles[0].kind === 'wind'
+    );
+    return [{ ruleId: TaiRuleId.BigFourWinds, tai: 80, evidenceTiles: windMelds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -247,7 +279,7 @@ export const checkDragonTriplets: TaiRuleFn = (hand, _ctx) => {
       meld.tiles[0].kind === 'dragon'
     ) {
       const dragon = meld.tiles[0].dragon;
-      results.push({ ruleId: TaiRuleId.DragonTriplet, tai: 2, label: `中發白 (${dragonLabels[dragon]})` });
+      results.push({ ruleId: TaiRuleId.DragonTriplet, tai: 2, label: `中發白 (${dragonLabels[dragon]})`, evidenceTiles: [meld.tiles] });
     }
   }
   return results.length > 0 ? results : null;
@@ -261,7 +293,7 @@ export const checkSmallThreeDragons: TaiRuleFn = (hand, _ctx) => {
   );
   const dragonPair = hand.pair[0].kind === 'dragon' && hand.pair[1].kind === 'dragon';
   if (dragonMelds.length === 2 && dragonPair) {
-    return [{ ruleId: TaiRuleId.SmallThreeDragons, tai: 20 }];
+    return [{ ruleId: TaiRuleId.SmallThreeDragons, tai: 20, evidenceTiles: [...dragonMelds.map(m => m.tiles), hand.pair] }];
   }
   return null;
 };
@@ -274,7 +306,7 @@ export const checkBigThreeDragons: TaiRuleFn = (hand, _ctx) => {
   );
   const dragons = new Set(dragonMelds.map((m) => (m.tiles[0] as { dragon: Dragon }).dragon));
   if (dragons.size === 3) {
-    return [{ ruleId: TaiRuleId.BigThreeDragons, tai: 40 }];
+    return [{ ruleId: TaiRuleId.BigThreeDragons, tai: 40, evidenceTiles: dragonMelds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -380,7 +412,7 @@ function chiNumberKey(meld: { tiles: PlayTile[] }): string {
 
 export const checkAllSequences: TaiRuleFn = (hand, _ctx) => {
   if (isAllSequences(hand)) {
-    return [{ ruleId: TaiRuleId.AllSequences, tai: 3 }];
+    return [{ ruleId: TaiRuleId.AllSequences, tai: 3, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -388,7 +420,7 @@ export const checkAllSequences: TaiRuleFn = (hand, _ctx) => {
 export const checkPairOf258: TaiRuleFn = (hand, _ctx) => {
   const p = hand.pair[0];
   if (p.kind === 'suit' && (p.value === 2 || p.value === 5 || p.value === 8)) {
-    return [{ ruleId: TaiRuleId.PairOf258, tai: 1 }];
+    return [{ ruleId: TaiRuleId.PairOf258, tai: 1, evidenceTiles: [hand.pair] }];
   }
   return null;
 };
@@ -423,7 +455,19 @@ export const checkOldAndYoung: TaiRuleFn = (hand, _ctx) => {
     );
 
     if ((has123 && has789) || (has111 && has999)) {
-      results.push({ ruleId: TaiRuleId.OldAndYoung, tai: 2, label: `老少 (${suitLabels[suit]})` });
+      const evidenceMelds: PlayTile[][] = [];
+      if (has123 && has789) {
+        const m1 = hand.melds.find(m => m.type === MeldType.Chi && m.tiles[0].kind === 'suit' && m.tiles[0].suit === suit && m.tiles[0].value === 1);
+        const m7 = hand.melds.find(m => m.type === MeldType.Chi && m.tiles[0].kind === 'suit' && m.tiles[0].suit === suit && m.tiles[0].value === 7);
+        if (m1) evidenceMelds.push(m1.tiles);
+        if (m7) evidenceMelds.push(m7.tiles);
+      } else {
+        const m1 = hand.melds.find(m => (m.type === MeldType.Pong || m.type === MeldType.Kong || m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) && m.tiles[0].kind === 'suit' && m.tiles[0].suit === suit && m.tiles[0].value === 1);
+        const m9 = hand.melds.find(m => (m.type === MeldType.Pong || m.type === MeldType.Kong || m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong) && m.tiles[0].kind === 'suit' && m.tiles[0].suit === suit && m.tiles[0].value === 9);
+        if (m1) evidenceMelds.push(m1.tiles);
+        if (m9) evidenceMelds.push(m9.tiles);
+      }
+      results.push({ ruleId: TaiRuleId.OldAndYoung, tai: 2, label: `老少 (${suitLabels[suit]})`, evidenceTiles: evidenceMelds });
     }
   }
   return results.length > 0 ? results : null;
@@ -447,22 +491,49 @@ function countIdenticalSequences(hand: Hand): number {
 }
 
 export const checkSameSequencePair: TaiRuleFn = (hand, _ctx) => {
-  if (countIdenticalSequences(hand) === 2) {
-    return [{ ruleId: TaiRuleId.SameSequencePair, tai: 3 }];
+  const chis = getChiMelds(hand);
+  const groups = new Map<string, Meld[]>();
+  for (const c of chis) {
+    const key = chiKey(c);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(c);
+  }
+  for (const melds of groups.values()) {
+    if (melds.length === 2) {
+      return [{ ruleId: TaiRuleId.SameSequencePair, tai: 3, evidenceTiles: melds.map(m => m.tiles) }];
+    }
   }
   return null;
 };
 
 export const checkThreeSameSequences: TaiRuleFn = (hand, _ctx) => {
-  if (countIdenticalSequences(hand) === 3) {
-    return [{ ruleId: TaiRuleId.ThreeSameSequences, tai: 15 }];
+  const chis = getChiMelds(hand);
+  const groups = new Map<string, Meld[]>();
+  for (const c of chis) {
+    const key = chiKey(c);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(c);
+  }
+  for (const melds of groups.values()) {
+    if (melds.length === 3) {
+      return [{ ruleId: TaiRuleId.ThreeSameSequences, tai: 15, evidenceTiles: melds.map(m => m.tiles) }];
+    }
   }
   return null;
 };
 
 export const checkFourSameSequences: TaiRuleFn = (hand, _ctx) => {
-  if (countIdenticalSequences(hand) === 4) {
-    return [{ ruleId: TaiRuleId.FourSameSequences, tai: 30 }];
+  const chis = getChiMelds(hand);
+  const groups = new Map<string, Meld[]>();
+  for (const c of chis) {
+    const key = chiKey(c);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(c);
+  }
+  for (const melds of groups.values()) {
+    if (melds.length === 4) {
+      return [{ ruleId: TaiRuleId.FourSameSequences, tai: 30, evidenceTiles: melds.map(m => m.tiles) }];
+    }
   }
   return null;
 };
@@ -507,45 +578,73 @@ function countSameNumberSequences(hand: Hand): number {
 
 export const checkTwoMixedSequences: TaiRuleFn = (hand, _ctx) => {
   if (countMixedSequences(hand) === 2 && countSameNumberSequences(hand) === 2) {
-    return [{ ruleId: TaiRuleId.TwoMixedSequences, tai: 2 }];
+    const chis = getChiMelds(hand);
+    const groups = new Map<number, Meld[]>();
+    for (const c of chis) {
+      const t = c.tiles[0];
+      if (t.kind === 'suit') {
+        if (!groups.has(t.value)) groups.set(t.value, []);
+        groups.get(t.value)!.push(c);
+      }
+    }
+    for (const melds of groups.values()) {
+      if (melds.length === 2) {
+        return [{ ruleId: TaiRuleId.TwoMixedSequences, tai: 2, evidenceTiles: melds.map(m => m.tiles) }];
+      }
+    }
   }
   return null;
 };
 
 export const checkThreeMixedSequences: TaiRuleFn = (hand, _ctx) => {
   if (countMixedSequences(hand) >= 3 && countSameNumberSequences(hand) >= 3) {
-    return [{ ruleId: TaiRuleId.ThreeMixedSequences, tai: 10 }];
+    const chis = getChiMelds(hand);
+    const groups = new Map<number, Meld[]>();
+    for (const c of chis) {
+      const t = c.tiles[0];
+      if (t.kind === 'suit') {
+        if (!groups.has(t.value)) groups.set(t.value, []);
+        groups.get(t.value)!.push(c);
+      }
+    }
+    for (const melds of groups.values()) {
+      if (melds.length >= 3) {
+        return [{ ruleId: TaiRuleId.ThreeMixedSequences, tai: 10, evidenceTiles: melds.map(m => m.tiles) }];
+      }
+    }
   }
   return null;
 };
 
 export const checkFourSameNumber: TaiRuleFn = (hand, _ctx) => {
   if (countSameNumberSequences(hand) === 4) {
-    return [{ ruleId: TaiRuleId.FourSameNumber, tai: 20 }];
+    const chis = getChiMelds(hand);
+    return [{ ruleId: TaiRuleId.FourSameNumber, tai: 20, evidenceTiles: chis.map(m => m.tiles) }];
   }
   return null;
 };
 
 export const checkFiveSameNumber: TaiRuleFn = (hand, _ctx) => {
   if (countSameNumberSequences(hand) === 5) {
-    return [{ ruleId: TaiRuleId.FiveSameNumber, tai: 40 }];
+    const chis = getChiMelds(hand);
+    return [{ ruleId: TaiRuleId.FiveSameNumber, tai: 40, evidenceTiles: chis.map(m => m.tiles) }];
   }
   return null;
 };
 
 // ── Straight (龍 / 雜龍) — 1-2-3, 4-5-6, 7-8-9 ──
 
-interface StraightResult { allConcealed: boolean; sameSuit: boolean }
+interface StraightResult { allConcealed: boolean; sameSuit: boolean; melds: Meld[] }
 
 function findStraight(hand: Hand): StraightResult | null {
   const chis = getChiMelds(hand);
   // Need three chi starting at 1, 4, 7
-  const starts = new Map<number, { suit: Suit; concealed: boolean }[]>();
+  const starts = new Map<number, { suit: Suit; concealed: boolean; meld: Meld }[]>();
   for (const c of chis) {
     const t = c.tiles[0];
     if (t.kind === 'suit' && (t.value === 1 || t.value === 4 || t.value === 7)) {
       if (!starts.has(t.value)) starts.set(t.value, []);
-      starts.get(t.value)!.push({ suit: t.suit, concealed: c.isConcealed });
+      starts.get(t.value)!.push({ suit: t.suit, concealed: c.isConcealed, meld: c });
     }
   }
 
@@ -563,7 +662,7 @@ function findStraight(hand: Hand): StraightResult | null {
         if (!best ||
             (sameSuit && !best.sameSuit) ||
             (sameSuit === best.sameSuit && allConcealed && !best.allConcealed)) {
-          best = { sameSuit, allConcealed };
+          best = { sameSuit, allConcealed, melds: [a.meld, b.meld, c.meld] };
         }
       }
     }
@@ -574,7 +673,7 @@ function findStraight(hand: Hand): StraightResult | null {
 export const checkConcealedPureStraight: TaiRuleFn = (hand, _ctx) => {
   const result = findStraight(hand);
   if (result && result.sameSuit && result.allConcealed) {
-    return [{ ruleId: TaiRuleId.ConcealedPureStraight, tai: 20 }];
+    return [{ ruleId: TaiRuleId.ConcealedPureStraight, tai: 20, evidenceTiles: result.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -582,7 +681,7 @@ export const checkConcealedPureStraight: TaiRuleFn = (hand, _ctx) => {
 export const checkOpenPureStraight: TaiRuleFn = (hand, _ctx) => {
   const result = findStraight(hand);
   if (result && result.sameSuit && !result.allConcealed) {
-    return [{ ruleId: TaiRuleId.OpenPureStraight, tai: 10 }];
+    return [{ ruleId: TaiRuleId.OpenPureStraight, tai: 10, evidenceTiles: result.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -590,7 +689,7 @@ export const checkOpenPureStraight: TaiRuleFn = (hand, _ctx) => {
 export const checkConcealedMixedStraight: TaiRuleFn = (hand, _ctx) => {
   const result = findStraight(hand);
   if (result && !result.sameSuit && result.allConcealed) {
-    return [{ ruleId: TaiRuleId.ConcealedMixedStraight, tai: 15 }];
+    return [{ ruleId: TaiRuleId.ConcealedMixedStraight, tai: 15, evidenceTiles: result.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -598,7 +697,7 @@ export const checkConcealedMixedStraight: TaiRuleFn = (hand, _ctx) => {
 export const checkOpenMixedStraight: TaiRuleFn = (hand, _ctx) => {
   const result = findStraight(hand);
   if (result && !result.sameSuit && !result.allConcealed) {
-    return [{ ruleId: TaiRuleId.OpenMixedStraight, tai: 8 }];
+    return [{ ruleId: TaiRuleId.OpenMixedStraight, tai: 8, evidenceTiles: result.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -609,7 +708,7 @@ export const checkOpenMixedStraight: TaiRuleFn = (hand, _ctx) => {
 
 export const checkAllTriplets: TaiRuleFn = (hand, _ctx) => {
   if (isAllTriplets(hand)) {
-    return [{ ruleId: TaiRuleId.AllTriplets, tai: 30 }];
+    return [{ ruleId: TaiRuleId.AllTriplets, tai: 30, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -617,7 +716,8 @@ export const checkAllTriplets: TaiRuleFn = (hand, _ctx) => {
 export const checkTwoConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
   const count = countConcealedTriplets(hand);
   if (count === 2) {
-    return [{ ruleId: TaiRuleId.TwoConcealedTriplets, tai: 3 }];
+    const concealed = hand.melds.filter(m => m.isConcealed && m.type !== MeldType.Chi);
+    return [{ ruleId: TaiRuleId.TwoConcealedTriplets, tai: 3, evidenceTiles: concealed.map(m => m.tiles) }];
   }
   return null;
 };
@@ -625,7 +725,8 @@ export const checkTwoConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
 export const checkThreeConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
   const count = countConcealedTriplets(hand);
   if (count === 3) {
-    return [{ ruleId: TaiRuleId.ThreeConcealedTriplets, tai: 10 }];
+    const concealed = hand.melds.filter(m => m.isConcealed && m.type !== MeldType.Chi);
+    return [{ ruleId: TaiRuleId.ThreeConcealedTriplets, tai: 10, evidenceTiles: concealed.map(m => m.tiles) }];
   }
   return null;
 };
@@ -633,7 +734,8 @@ export const checkThreeConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
 export const checkFourConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
   const count = countConcealedTriplets(hand);
   if (count === 4) {
-    return [{ ruleId: TaiRuleId.FourConcealedTriplets, tai: 30 }];
+    const concealed = hand.melds.filter(m => m.isConcealed && m.type !== MeldType.Chi);
+    return [{ ruleId: TaiRuleId.FourConcealedTriplets, tai: 30, evidenceTiles: concealed.map(m => m.tiles) }];
   }
   return null;
 };
@@ -641,7 +743,8 @@ export const checkFourConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
 export const checkFiveConcealedTriplets: TaiRuleFn = (hand, _ctx) => {
   const count = countConcealedTriplets(hand);
   if (count === 5) {
-    return [{ ruleId: TaiRuleId.FiveConcealedTriplets, tai: 80 }];
+    const concealed = hand.melds.filter(m => m.isConcealed && m.type !== MeldType.Chi);
+    return [{ ruleId: TaiRuleId.FiveConcealedTriplets, tai: 80, evidenceTiles: concealed.map(m => m.tiles) }];
   }
   return null;
 };
@@ -664,14 +767,18 @@ function getSuitTriplets(hand: Hand): { suit: Suit; value: SuitValue }[] {
 
 export const checkTwoBrothers: TaiRuleFn = (hand, _ctx) => {
   const triplets = getSuitTriplets(hand);
-  // Group by value, count distinct suits
   const byValue = new Map<number, Set<Suit>>();
   for (const t of triplets) {
     if (!byValue.has(t.value)) byValue.set(t.value, new Set());
     byValue.get(t.value)!.add(t.suit);
   }
-  for (const suits of byValue.values()) {
-    if (suits.size === 2) return [{ ruleId: TaiRuleId.TwoBrothers, tai: 3 }];
+  for (const [val, suits] of byValue) {
+    if (suits.size === 2) {
+      const melds = hand.melds.filter(m =>
+        (m.type !== MeldType.Chi) && m.tiles[0].kind === 'suit' && m.tiles[0].value === val
+      );
+      return [{ ruleId: TaiRuleId.TwoBrothers, tai: 3, evidenceTiles: melds.map(m => m.tiles) }];
+    }
   }
   return null;
 };
@@ -683,12 +790,14 @@ export const checkSmallThreeBrothers: TaiRuleFn = (hand, _ctx) => {
     if (!byValue.has(t.value)) byValue.set(t.value, new Set());
     byValue.get(t.value)!.add(t.suit);
   }
-  // Need 2 brother triplets + pair of same value
   for (const [val, suits] of byValue) {
     if (suits.size >= 2) {
       const p = hand.pair[0];
       if (p.kind === 'suit' && p.value === val && !suits.has(p.suit)) {
-        return [{ ruleId: TaiRuleId.SmallThreeBrothers, tai: 10 }];
+        const melds = hand.melds.filter(m =>
+          (m.type !== MeldType.Chi) && m.tiles[0].kind === 'suit' && m.tiles[0].value === val
+        );
+        return [{ ruleId: TaiRuleId.SmallThreeBrothers, tai: 10, evidenceTiles: [...melds.map(m => m.tiles), hand.pair] }];
       }
     }
   }
@@ -702,8 +811,13 @@ export const checkBigThreeBrothers: TaiRuleFn = (hand, _ctx) => {
     if (!byValue.has(t.value)) byValue.set(t.value, new Set());
     byValue.get(t.value)!.add(t.suit);
   }
-  for (const suits of byValue.values()) {
-    if (suits.size === 3) return [{ ruleId: TaiRuleId.BigThreeBrothers, tai: 15 }];
+  for (const [val, suits] of byValue) {
+    if (suits.size === 3) {
+      const melds = hand.melds.filter(m =>
+        (m.type !== MeldType.Chi) && m.tiles[0].kind === 'suit' && m.tiles[0].value === val
+      );
+      return [{ ruleId: TaiRuleId.BigThreeBrothers, tai: 15, evidenceTiles: melds.map(m => m.tiles) }];
+    }
   }
   return null;
 };
@@ -727,7 +841,12 @@ export const checkSmallThreeSisters: TaiRuleFn = (hand, _ctx) => {
         const p = hand.pair[0];
         if (p.kind === 'suit' && p.suit === suit) {
           if (p.value === vals[i] - 1 || p.value === vals[i + 1] + 1) {
-            return [{ ruleId: TaiRuleId.SmallThreeSisters, tai: 8 }];
+            const melds = hand.melds.filter(m =>
+              (m.type !== MeldType.Chi) && m.tiles[0].kind === 'suit' &&
+              m.tiles[0].suit === suit &&
+              (m.tiles[0].value === vals[i] || m.tiles[0].value === vals[i + 1])
+            );
+            return [{ ruleId: TaiRuleId.SmallThreeSisters, tai: 8, evidenceTiles: [...melds.map(m => m.tiles), hand.pair] }];
           }
         }
       }
@@ -743,11 +862,16 @@ export const checkBigThreeSisters: TaiRuleFn = (hand, _ctx) => {
     if (!bySuit.has(t.suit)) bySuit.set(t.suit, []);
     bySuit.get(t.suit)!.push(t.value);
   }
-  for (const vals of bySuit.values()) {
+  for (const [suit, vals] of bySuit) {
     vals.sort((a, b) => a - b);
     for (let i = 0; i < vals.length - 2; i++) {
       if (vals[i + 1] === vals[i] + 1 && vals[i + 2] === vals[i] + 2) {
-        return [{ ruleId: TaiRuleId.BigThreeSisters, tai: 15 }];
+        const melds = hand.melds.filter(m =>
+          (m.type !== MeldType.Chi) && m.tiles[0].kind === 'suit' &&
+          m.tiles[0].suit === suit &&
+          (m.tiles[0].value === vals[i] || m.tiles[0].value === vals[i + 1] || m.tiles[0].value === vals[i + 2])
+        );
+        return [{ ruleId: TaiRuleId.BigThreeSisters, tai: 15, evidenceTiles: melds.map(m => m.tiles) }];
       }
     }
   }
@@ -785,7 +909,7 @@ export const checkFourToOne: TaiRuleFn = (hand, _ctx) => {
   const results: TaiResult[] = [];
   for (const [key, info] of counts) {
     if (info.total === 4 && info.inPair === 0 && info.inChi < 4) {
-      results.push({ ruleId: TaiRuleId.FourToOne, tai: 5, label: `四歸一` });
+      results.push({ ruleId: TaiRuleId.FourToOne, tai: 5, label: `四歸一`, evidenceTiles: [hand.melds.flatMap(m => m.tiles).filter(t => tileKey(t) === key)] });
     }
   }
   return results.length > 0 ? results : null;
@@ -795,7 +919,8 @@ export const checkFourToTwo: TaiRuleFn = (hand, _ctx) => {
   const counts = countTileOccurrences(hand);
   for (const [key, info] of counts) {
     if (info.total === 4 && info.inPair === 2) {
-      return [{ ruleId: TaiRuleId.FourToTwo, tai: 10 }];
+      const allTilesFlat = [...hand.melds.flatMap(m => m.tiles), ...hand.pair];
+      return [{ ruleId: TaiRuleId.FourToTwo, tai: 10, evidenceTiles: [allTilesFlat.filter(t => tileKey(t) === key)] }];
     }
   }
   return null;
@@ -805,7 +930,7 @@ export const checkFourToFour: TaiRuleFn = (hand, _ctx) => {
   const counts = countTileOccurrences(hand);
   for (const [key, info] of counts) {
     if (info.total === 4 && info.inChi === 4) {
-      return [{ ruleId: TaiRuleId.FourToFour, tai: 20 }];
+      return [{ ruleId: TaiRuleId.FourToFour, tai: 20, evidenceTiles: [hand.melds.flatMap(m => m.tiles).filter(t => tileKey(t) === key)] }];
     }
   }
   return null;
@@ -819,7 +944,7 @@ export const checkHalfFlush: TaiRuleFn = (hand, _ctx) => {
   const suits = getSuitsInHand(hand);
   const hasHonors = hasHonorTiles(hand);
   if (suits.size === 1 && hasHonors) {
-    return [{ ruleId: TaiRuleId.HalfFlush, tai: 30 }];
+    return [{ ruleId: TaiRuleId.HalfFlush, tai: 30, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -830,7 +955,7 @@ export const checkFullFlush: TaiRuleFn = (hand, _ctx) => {
   if (suitTiles.length === allTiles.length && suitTiles.length > 0) {
     const suits = new Set(suitTiles.map((t) => t.suit));
     if (suits.size === 1) {
-      return [{ ruleId: TaiRuleId.FullFlush, tai: 80 }];
+      return [{ ruleId: TaiRuleId.FullFlush, tai: 80, evidenceTiles: hand.melds.map(m => m.tiles) }];
     }
   }
   return null;
@@ -841,13 +966,12 @@ export const checkFullFlush: TaiRuleFn = (hand, _ctx) => {
 // ─────────────────────────────────────────────────
 
 export const checkAllMiddle: TaiRuleFn = (hand, _ctx) => {
-  // 斷么: no terminals (1 or 9) and no honors
   const allTiles = getAllTiles(hand);
   for (const tile of allTiles) {
     if (isHonor(tile)) return null;
     if (isTerminal(tile)) return null;
   }
-  return [{ ruleId: TaiRuleId.AllMiddle, tai: 5 }];
+  return [{ ruleId: TaiRuleId.AllMiddle, tai: 5, evidenceTiles: hand.melds.map(m => m.tiles) }];
 };
 
 export const checkMixedTerminalChows: TaiRuleFn = (hand, _ctx) => {
@@ -864,7 +988,7 @@ export const checkMixedTerminalChows: TaiRuleFn = (hand, _ctx) => {
   const hasSequences = hand.melds.some((m) => m.type === MeldType.Chi);
   if (!hasSequences) return null;
 
-  return [{ ruleId: TaiRuleId.MixedTerminalChows, tai: 10 }];
+  return [{ ruleId: TaiRuleId.MixedTerminalChows, tai: 10, evidenceTiles: hand.melds.map(m => m.tiles) }];
 };
 
 export const checkPureTerminalChows: TaiRuleFn = (hand, _ctx) => {
@@ -881,7 +1005,7 @@ export const checkPureTerminalChows: TaiRuleFn = (hand, _ctx) => {
   const hasSequences = hand.melds.some((m) => m.type === MeldType.Chi);
   if (!hasSequences) return null;
 
-  return [{ ruleId: TaiRuleId.PureTerminalChows, tai: 15 }];
+  return [{ ruleId: TaiRuleId.PureTerminalChows, tai: 15, evidenceTiles: hand.melds.map(m => m.tiles) }];
 };
 
 export const checkMixedTerminals: TaiRuleFn = (hand, _ctx) => {
@@ -895,7 +1019,7 @@ export const checkMixedTerminals: TaiRuleFn = (hand, _ctx) => {
   const hasHonors = allTiles.some((t) => isHonor(t));
   if (!hasTerminals || !hasHonors) return null;
 
-  return [{ ruleId: TaiRuleId.MixedTerminals, tai: 30 }];
+  return [{ ruleId: TaiRuleId.MixedTerminals, tai: 30, evidenceTiles: hand.melds.map(m => m.tiles) }];
 };
 
 export const checkAllTerminals: TaiRuleFn = (hand, _ctx) => {
@@ -904,7 +1028,7 @@ export const checkAllTerminals: TaiRuleFn = (hand, _ctx) => {
   for (const tile of allTiles) {
     if (!isTerminal(tile)) return null;
   }
-  return [{ ruleId: TaiRuleId.AllTerminals, tai: 80 }];
+  return [{ ruleId: TaiRuleId.AllTerminals, tai: 80, evidenceTiles: hand.melds.map(m => m.tiles) }];
 };
 
 // ─────────────────────────────────────────────────
@@ -916,7 +1040,7 @@ export const checkFullyOpen: TaiRuleFn = (hand, ctx) => {
 
   const openMelds = hand.melds.filter((m) => !m.isConcealed);
   if (openMelds.length === hand.melds.length && hand.melds.length === 5) {
-    return [{ ruleId: TaiRuleId.FullyOpen, tai: 15 }];
+    return [{ ruleId: TaiRuleId.FullyOpen, tai: 15, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -926,7 +1050,7 @@ export const checkHalfOpen: TaiRuleFn = (hand, ctx) => {
 
   const openMelds = hand.melds.filter((m) => !m.isConcealed);
   if (openMelds.length === hand.melds.length && hand.melds.length === 5) {
-    return [{ ruleId: TaiRuleId.HalfOpen, tai: 8 }];
+    return [{ ruleId: TaiRuleId.HalfOpen, tai: 8, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -972,7 +1096,8 @@ export const checkKongOnKong: TaiRuleFn = (_hand, ctx) => {
 
 export const checkFourKongs: TaiRuleFn = (hand, _ctx) => {
   if (countKongs(hand) === 4) {
-    return [{ ruleId: TaiRuleId.FourKongs, tai: 8 }];
+    const kongMelds = hand.melds.filter(m => m.type === MeldType.Kong || m.type === MeldType.ConcealedKong || m.type === MeldType.AddedKong);
+    return [{ ruleId: TaiRuleId.FourKongs, tai: 8, evidenceTiles: kongMelds.map(m => m.tiles) }];
   }
   return null;
 };
@@ -1013,9 +1138,8 @@ export const checkHumanHand: TaiRuleFn = (_hand, ctx) => {
 };
 
 export const checkAllConcealedTripletsSD: TaiRuleFn = (hand, ctx) => {
-  // 間間胡: concealed + all triplets + self draw
   if (hand.isConcealed && isAllTriplets(hand) && ctx.isSelfDraw) {
-    return [{ ruleId: TaiRuleId.AllConcealedTripletsSD, tai: 100 }];
+    return [{ ruleId: TaiRuleId.AllConcealedTripletsSD, tai: 100, evidenceTiles: hand.melds.map(m => m.tiles) }];
   }
   return null;
 };

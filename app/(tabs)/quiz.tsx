@@ -6,6 +6,7 @@ import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import HandDisplay from '@/components/HandDisplay';
+import TileDisplay from '@/components/TileDisplay';
 import { QUIZ_SCENARIOS } from '@/src/data/quiz-hands';
 import { calculateScore, ScoreBreakdown } from '@/src/engine/scoring';
 import { TAI_CATALOG_MAP } from '@/src/data/tai-catalog';
@@ -322,9 +323,22 @@ export default function QuizScreen() {
                 return (
                   <View key={i} style={styles.breakdownRow}>
                     <Text style={[styles.breakdownTai, { color: colors.accent }]}>+{r.tai}</Text>
-                    <Text style={{ color: colors.text, flex: 1 }}>
-                      {def?.name.zh ?? r.ruleId} {r.label ? `(${r.label})` : ''}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text }}>
+                        {def?.name.zh ?? r.ruleId} {r.label ? `(${r.label})` : ''}
+                      </Text>
+                      {r.evidenceTiles && r.evidenceTiles.length > 0 && (
+                        <View style={styles.evidenceRow}>
+                          {r.evidenceTiles.map((group, gi) => (
+                            <View key={gi} style={styles.evidenceGroup}>
+                              {group.map((tile, ti) => (
+                                <TileDisplay key={ti} tile={tile} size="sm" />
+                              ))}
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
                   </View>
                 );
               })}
@@ -420,8 +434,10 @@ const styles = StyleSheet.create({
   },
   breakdownTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
   breakdownSubtitle: { fontSize: 13, marginTop: 4 },
-  breakdownRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  breakdownTai: { fontSize: 14, fontWeight: '700', width: 32 },
+  breakdownRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', paddingVertical: 4 },
+  breakdownTai: { fontSize: 14, fontWeight: '700', width: 32, marginTop: 2 },
+  evidenceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  evidenceGroup: { flexDirection: 'row', gap: 1, marginRight: 6, paddingVertical: 1, paddingHorizontal: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 4 },
   nextBtn: {
     marginTop: 8,
     paddingVertical: 12,

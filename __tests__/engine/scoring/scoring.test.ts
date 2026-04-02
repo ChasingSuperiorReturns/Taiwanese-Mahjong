@@ -50,7 +50,7 @@ describe('Basic tai rules', () => {
 
   test('Dealer = 1 tai', () => {
     expect(checkDealer(baseHand, defaultContext({ isDealer: true, dealerStreak: 0 })))
-      .toEqual([{ ruleId: TaiRuleId.Dealer, tai: 1 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.Dealer, tai: 1 }]);
   });
 
   test('Dealer — not dealer → null', () => {
@@ -65,7 +65,7 @@ describe('Basic tai rules', () => {
 
   test('Concealed = 3 tai (discard win only)', () => {
     const ctx = defaultContext({ isSelfDraw: false });
-    expect(checkConcealed(baseHand, ctx)).toEqual([{ ruleId: TaiRuleId.Concealed, tai: 3 }]);
+    expect(checkConcealed(baseHand, ctx)).toMatchObject([{ ruleId: TaiRuleId.Concealed, tai: 3 }]);
   });
 
   test('Concealed — self-draw → null', () => {
@@ -74,12 +74,12 @@ describe('Basic tai rules', () => {
 
   test('SelfDraw = 1 tai', () => {
     expect(checkSelfDraw(baseHand, defaultContext({ isSelfDraw: true })))
-      .toEqual([{ ruleId: TaiRuleId.SelfDraw, tai: 1 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.SelfDraw, tai: 1 }]);
   });
 
   test('ConcealedSelfDraw = 5 tai', () => {
     expect(checkConcealedSelfDraw(baseHand, defaultContext({ isSelfDraw: true })))
-      .toEqual([{ ruleId: TaiRuleId.ConcealedSelfDraw, tai: 5 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.ConcealedSelfDraw, tai: 5 }]);
   });
 
   test('SingleWait = 2 tai', () => {
@@ -87,7 +87,7 @@ describe('Basic tai rules', () => {
       [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)]), chi([S(7), S(8), S(9)]), pong(W(5)), pong(T(9))],
       [S(1), S(1)], S(1), true,
     );
-    expect(checkSingleWait(hand, defaultContext())).toEqual([{ ruleId: TaiRuleId.SingleWait, tai: 2 }]);
+    expect(checkSingleWait(hand, defaultContext())).toMatchObject([{ ruleId: TaiRuleId.SingleWait, tai: 2 }]);
   });
 
   test('NoHonors = 1 tai (no honor tiles)', () => {
@@ -95,7 +95,7 @@ describe('Basic tai rules', () => {
       [chi([W(1), W(2), W(3)]), chi([T(4), T(5), T(6)]), chi([S(2), S(3), S(4)]), pong(W(5)), pong(T(9))],
       [S(1), S(1)], S(1),
     );
-    expect(checkNoHonors(noHonorHand, defaultContext())).toEqual([{ ruleId: TaiRuleId.NoHonors, tai: 1 }]);
+    expect(checkNoHonors(noHonorHand, defaultContext())).toMatchObject([{ ruleId: TaiRuleId.NoHonors, tai: 1 }]);
   });
 
   test('NoHonors — hand with honors → null', () => {
@@ -116,7 +116,7 @@ describe('Wind tai rules', () => {
       [S(1), S(1)], S(1),
     );
     expect(checkMatchingWindTriplet(hand, defaultContext({ seatWind: Wind.South })))
-      .toEqual([{ ruleId: TaiRuleId.MatchingWindTriplet, tai: 2 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.MatchingWindTriplet, tai: 2 }]);
   });
 
   test('Wind Triplet = 1 tai (non-seat wind pong)', () => {
@@ -135,7 +135,7 @@ describe('Wind tai rules', () => {
       [NORTH, NORTH], W(5),
     );
     expect(checkSmallFourWinds(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.SmallFourWinds, tai: 60 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.SmallFourWinds, tai: 60 }]);
   });
 
   test('BigFourWinds = 80 tai (4 wind pongs)', () => {
@@ -144,7 +144,7 @@ describe('Wind tai rules', () => {
       [T(1), T(1)], W(5),
     );
     expect(checkBigFourWinds(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.BigFourWinds, tai: 80 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.BigFourWinds, tai: 80 }]);
   });
 });
 
@@ -167,7 +167,7 @@ describe('Dragon tai rules', () => {
       [WHITE, WHITE], W(5),
     );
     expect(checkSmallThreeDragons(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.SmallThreeDragons, tai: 20 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.SmallThreeDragons, tai: 20 }]);
   });
 
   test('BigThreeDragons = 40 tai', () => {
@@ -176,7 +176,7 @@ describe('Dragon tai rules', () => {
       [S(1), S(1)], S(1),
     );
     expect(checkBigThreeDragons(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.BigThreeDragons, tai: 40 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.BigThreeDragons, tai: 40 }]);
   });
 });
 
@@ -204,7 +204,7 @@ describe('Flower tai rules', () => {
 
   test('NoFlowers = 1 tai', () => {
     expect(checkNoFlowers(baseHand, defaultContext({ flowers: [] })))
-      .toEqual([{ ruleId: TaiRuleId.NoFlowers, tai: 1 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.NoFlowers, tai: 1 }]);
   });
 
   test('One Flower Group = 10 tai (4 seasons)', () => {
@@ -229,7 +229,7 @@ describe('Flower tai rules', () => {
       ],
     });
     expect(checkTwoFlowerGroups(baseHand, ctx))
-      .toEqual([{ ruleId: TaiRuleId.TwoFlowerGroups, tai: 30 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.TwoFlowerGroups, tai: 30 }]);
   });
 });
 
@@ -242,7 +242,7 @@ describe('Pattern tai rules', () => {
       [T(6), T(6)], T(6),
     );
     expect(checkAllTriplets(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.AllTriplets, tai: 30 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.AllTriplets, tai: 30 }]);
   });
 
   test('AllSequences = 3 tai', () => {
@@ -251,7 +251,7 @@ describe('Pattern tai rules', () => {
       [S(1), S(1)], S(1),
     );
     expect(checkAllSequences(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.AllSequences, tai: 3 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.AllSequences, tai: 3 }]);
   });
 
   test('HalfFlush = 30 tai (one suit + honors)', () => {
@@ -260,7 +260,7 @@ describe('Pattern tai rules', () => {
       [W(5), W(5)], W(5),
     );
     expect(checkHalfFlush(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.HalfFlush, tai: 30 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.HalfFlush, tai: 30 }]);
   });
 
   test('FullFlush = 80 tai (one suit only)', () => {
@@ -269,7 +269,7 @@ describe('Pattern tai rules', () => {
       [W(1), W(1)], W(1),
     );
     expect(checkFullFlush(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.FullFlush, tai: 80 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.FullFlush, tai: 80 }]);
   });
 
   test('FullyOpen = 15 tai (all open, discard win)', () => {
@@ -278,7 +278,7 @@ describe('Pattern tai rules', () => {
       [S(1), S(1)], S(1),
     );
     expect(checkFullyOpen(hand, defaultContext({ isSelfDraw: false })))
-      .toEqual([{ ruleId: TaiRuleId.FullyOpen, tai: 15 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.FullyOpen, tai: 15 }]);
   });
 
   test('HalfOpen = 8 tai (all open, self-draw)', () => {
@@ -287,7 +287,7 @@ describe('Pattern tai rules', () => {
       [S(1), S(1)], S(1),
     );
     expect(checkHalfOpen(hand, defaultContext({ isSelfDraw: true })))
-      .toEqual([{ ruleId: TaiRuleId.HalfOpen, tai: 8 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.HalfOpen, tai: 8 }]);
   });
 
   test('OpenPureStraight = 10 tai (123+456+789 same suit, open)', () => {
@@ -296,7 +296,7 @@ describe('Pattern tai rules', () => {
       [S(6), S(6)], S(6),
     );
     expect(checkOpenPureStraight(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.OpenPureStraight, tai: 10 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.OpenPureStraight, tai: 10 }]);
   });
 
   test('OldAndYoung = 2 tai (123+789 same suit)', () => {
@@ -315,7 +315,7 @@ describe('Pattern tai rules', () => {
       [T(9), T(9)], T(9),
     );
     expect(checkSameSequencePair(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.SameSequencePair, tai: 3 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.SameSequencePair, tai: 3 }]);
   });
 
   test('TwoBrothers = 3 tai (same number diff suit triplets)', () => {
@@ -324,7 +324,7 @@ describe('Pattern tai rules', () => {
       [T(9), T(9)], T(9),
     );
     expect(checkTwoBrothers(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.TwoBrothers, tai: 3 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.TwoBrothers, tai: 3 }]);
   });
 
   test('AllMiddle = 5 tai (no terminals, no honors)', () => {
@@ -333,7 +333,7 @@ describe('Pattern tai rules', () => {
       [S(3), S(3)], S(3),
     );
     expect(checkAllMiddle(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.AllMiddle, tai: 5 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.AllMiddle, tai: 5 }]);
   });
 
   test('FourKongs = 8 tai', () => {
@@ -342,7 +342,7 @@ describe('Pattern tai rules', () => {
       [T(6), T(6)], T(6),
     );
     expect(checkFourKongs(hand, defaultContext()))
-      .toEqual([{ ruleId: TaiRuleId.FourKongs, tai: 8 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.FourKongs, tai: 8 }]);
   });
 
   test('AllConcealedTripletsSD = 100 tai', () => {
@@ -351,7 +351,7 @@ describe('Pattern tai rules', () => {
       [T(6), T(6)], T(6),
     );
     expect(checkAllConcealedTripletsSD(hand, defaultContext({ isSelfDraw: true })))
-      .toEqual([{ ruleId: TaiRuleId.AllConcealedTripletsSD, tai: 100 }]);
+      .toMatchObject([{ ruleId: TaiRuleId.AllConcealedTripletsSD, tai: 100 }]);
   });
 });
 
@@ -365,7 +365,7 @@ describe('Conflict resolution', () => {
       { ruleId: TaiRuleId.SelfDraw, tai: 1 },
     ];
     const resolved = resolveConflicts(results);
-    expect(resolved).toEqual([{ ruleId: TaiRuleId.ConcealedSelfDraw, tai: 5 }]);
+    expect(resolved).toMatchObject([{ ruleId: TaiRuleId.ConcealedSelfDraw, tai: 5 }]);
   });
 
   test('BigFourWinds excludes all wind sub-rules', () => {
@@ -377,7 +377,7 @@ describe('Conflict resolution', () => {
       { ruleId: TaiRuleId.BigThreeWinds, tai: 30 },
     ];
     const resolved = resolveConflicts(results);
-    expect(resolved).toEqual([{ ruleId: TaiRuleId.BigFourWinds, tai: 80 }]);
+    expect(resolved).toMatchObject([{ ruleId: TaiRuleId.BigFourWinds, tai: 80 }]);
   });
 
   test('FullFlush excludes HalfFlush + MissingOneSuit + NoHonors', () => {
@@ -388,7 +388,7 @@ describe('Conflict resolution', () => {
       { ruleId: TaiRuleId.NoHonors, tai: 1 },
     ];
     const resolved = resolveConflicts(results);
-    expect(resolved).toEqual([{ ruleId: TaiRuleId.FullFlush, tai: 80 }]);
+    expect(resolved).toMatchObject([{ ruleId: TaiRuleId.FullFlush, tai: 80 }]);
   });
 
   test('AllConcealedTripletsSD excludes AllTriplets + FiveConcealedTriplets + ConcealedSelfDraw + Concealed + SelfDraw', () => {
@@ -401,7 +401,7 @@ describe('Conflict resolution', () => {
       { ruleId: TaiRuleId.Concealed, tai: 3 },
     ];
     const resolved = resolveConflicts(results);
-    expect(resolved).toEqual([{ ruleId: TaiRuleId.AllConcealedTripletsSD, tai: 100 }]);
+    expect(resolved).toMatchObject([{ ruleId: TaiRuleId.AllConcealedTripletsSD, tai: 100 }]);
   });
 });
 

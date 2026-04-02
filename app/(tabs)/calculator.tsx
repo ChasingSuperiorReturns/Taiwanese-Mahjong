@@ -411,6 +411,17 @@ export default function CalculatorScreen() {
                   <Text style={[styles.resultNameEn, { color: colors.subtitle }]}>
                     {def?.name.en ?? ''}
                   </Text>
+                  {r.evidenceTiles && r.evidenceTiles.length > 0 && (
+                    <View style={styles.evidenceRow}>
+                      {r.evidenceTiles.map((group, gi) => (
+                        <View key={gi} style={styles.evidenceGroup}>
+                          {group.map((tile, ti) => (
+                            <TileDisplay key={ti} tile={tile} size="sm" />
+                          ))}
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               </View>
             );
@@ -579,13 +590,15 @@ const styles = StyleSheet.create({
   },
   resultRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
+    paddingVertical: 4,
   },
   resultTai: {
     fontSize: 16,
     fontWeight: '700',
     width: 36,
+    marginTop: 2,
   },
   resultName: {
     fontSize: 14,
@@ -594,4 +607,6 @@ const styles = StyleSheet.create({
   resultNameEn: {
     fontSize: 12,
   },
+  evidenceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  evidenceGroup: { flexDirection: 'row', gap: 1, marginRight: 6, paddingVertical: 1, paddingHorizontal: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 4 },
 });
