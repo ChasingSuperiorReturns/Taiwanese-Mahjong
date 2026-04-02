@@ -5,7 +5,9 @@ import {
 import { Text, View } from '@/components/Themed';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { TAI_CATALOG, TaiRuleDef } from '@/src/data/tai-catalog';
+import { TAI_CATALOG, TaiRuleDef, TaiRuleId } from '@/src/data/tai-catalog';
+import { TAI_EXAMPLES } from '@/src/data/tai-examples';
+import TileDisplay from '@/components/TileDisplay';
 
 type Category = 'all' | TaiRuleDef['category'];
 
@@ -87,6 +89,27 @@ export default function ReferenceScreen() {
         <Text style={styles.excludes}>
           排除: {item.excludes.map((e) => TAI_CATALOG.find((r) => r.id === e)?.name.zh).filter(Boolean).join('、')}
         </Text>
+      )}
+
+      {/* Example tiles */}
+      {TAI_EXAMPLES[item.id as TaiRuleId] && (
+        <View style={styles.exampleContainer}>
+          <Text style={[styles.exampleTitle, { color: colors.accent }]}>示範 Example</Text>
+          <View style={styles.exampleTiles}>
+            {TAI_EXAMPLES[item.id as TaiRuleId]!.tiles.map((group, gi) => (
+              <View key={gi} style={styles.tileGroup}>
+                {group.map((tile, ti) => (
+                  <TileDisplay key={ti} tile={tile} size="sm" />
+                ))}
+              </View>
+            ))}
+          </View>
+          {TAI_EXAMPLES[item.id as TaiRuleId]!.label && (
+            <Text style={[styles.exampleLabel, { color: colors.subtitle }]}>
+              {TAI_EXAMPLES[item.id as TaiRuleId]!.label}
+            </Text>
+          )}
+        </View>
       )}
     </View>
   );
@@ -244,6 +267,35 @@ const styles = StyleSheet.create({
   excludes: {
     fontSize: 11,
     color: '#aa6666',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  exampleContainer: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(128,128,128,0.15)',
+  },
+  exampleTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  exampleTiles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center',
+  },
+  tileGroup: {
+    flexDirection: 'row',
+    gap: 1,
+    backgroundColor: 'rgba(128,128,128,0.06)',
+    borderRadius: 4,
+    padding: 2,
+  },
+  exampleLabel: {
+    fontSize: 11,
     marginTop: 4,
     fontStyle: 'italic',
   },
