@@ -1,9 +1,10 @@
 ﻿import React from 'react';
 import { View, Text, Image, StyleSheet, ImageSourcePropType } from 'react-native';
-import { PlayTile } from '@/src/engine/tiles';
+import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import { Tile, PlayTile, FlowerType } from '@/src/engine/tiles';
 
 interface TileDisplayProps {
-  tile: PlayTile;
+  tile: Tile;
   size?: 'sm' | 'md' | 'lg';
   highlighted?: boolean;
 }
@@ -23,11 +24,12 @@ const TILE_LABELS: Record<string, string> = {
   'dragon_red': '中', 'dragon_green': '發', 'dragon_white': '白',
 };
 
-function getTileKey(tile: PlayTile): string {
+function getTileKey(tile: Tile): string {
   switch (tile.kind) {
     case 'suit': return `${tile.suit}_${tile.value}`;
     case 'wind': return `wind_${tile.wind}`;
     case 'dragon': return `dragon_${tile.dragon}`;
+    case 'flower': return `flower_${tile.flower}`;
   }
 }
 
@@ -74,28 +76,240 @@ const TILE_IMAGES: Record<string, ImageSourcePropType> = {
   'dragon_white': require('../assets/images/tiles/Haku.png'),
 };
 
-const FLOWER_LABELS: Record<string, string> = {
-  'flower_1': '梅', 'flower_2': '蘭', 'flower_3': '竹', 'flower_4': '菊',
-  'flower_5': '春', 'flower_6': '夏', 'flower_7': '秋', 'flower_8': '冬',
+// ─── Flower Data ───
+
+interface FlowerInfo {
+  char: string;
+  num: number;
+  color: string;
+  group: 'plant' | 'season';
+}
+
+const FLOWER_INFO: Record<string, FlowerInfo> = {
+  [FlowerType.Plum]:          { char: '梅', num: 1, color: '#cc2222', group: 'plant' },
+  [FlowerType.Orchid]:        { char: '蘭', num: 2, color: '#1a7a2a', group: 'plant' },
+  [FlowerType.Bamboo]:        { char: '竹', num: 3, color: '#1a7a2a', group: 'plant' },
+  [FlowerType.Chrysanthemum]: { char: '菊', num: 4, color: '#cc2222', group: 'plant' },
+  [FlowerType.Spring]:        { char: '春', num: 1, color: '#cc2222', group: 'season' },
+  [FlowerType.Summer]:        { char: '夏', num: 2, color: '#cc2222', group: 'season' },
+  [FlowerType.Autumn]:        { char: '秋', num: 3, color: '#1a5ea6', group: 'season' },
+  [FlowerType.Winter]:        { char: '冬', num: 4, color: '#1a5ea6', group: 'season' },
 };
 
-const FLOWER_COLORS: Record<string, string> = {
-  'flower_1': '#cc2222', 'flower_2': '#1a7a2a', 'flower_3': '#1a7a2a', 'flower_4': '#cc2222',
-  'flower_5': '#cc2222', 'flower_6': '#cc2222', 'flower_7': '#1a5ea6', 'flower_8': '#1a5ea6',
+// ─── Flower SVG Art ───
+
+function PlumArt() {
+  // 5-petal plum blossom
+  const cx = 50, cy = 52, r = 11;
+  const petals = [0, 72, 144, 216, 288].map(deg => {
+    const rad = (deg - 90) * Math.PI / 180;
+    return { x: cx + 20 * Math.cos(rad), y: cy + 20 * Math.sin(rad) };
+  });
+  return (
+    <>
+      {petals.map((p, i) => (
+        <Circle key={i} cx={p.x} cy={p.y} r={r} fill="#cc2222" opacity={0.85} />
+      ))}
+      <Circle cx={cx} cy={cy} r={5} fill="#ffdd44" />
+    </>
+  );
+}
+
+function OrchidArt() {
+  // Curved orchid leaves
+  return (
+    <>
+      <Path d="M50,70 Q30,45 45,25" stroke="#1a7a2a" strokeWidth={3} fill="none" />
+      <Path d="M50,70 Q70,45 55,25" stroke="#1a7a2a" strokeWidth={3} fill="none" />
+      <Path d="M50,70 Q20,55 25,35" stroke="#1a7a2a" strokeWidth={2.5} fill="none" />
+      <Path d="M50,70 Q80,55 75,35" stroke="#1a7a2a" strokeWidth={2.5} fill="none" />
+      <Circle cx={50} cy={38} r={4} fill="#cc2222" />
+      <Circle cx={45} cy={32} r={3} fill="#cc2222" opacity={0.7} />
+      <Circle cx={55} cy={32} r={3} fill="#cc2222" opacity={0.7} />
+    </>
+  );
+}
+
+function BambooArt() {
+  // Bamboo stalks with leaves
+  return (
+    <>
+      <Line x1={40} y1={75} x2={40} y2={25} stroke="#1a7a2a" strokeWidth={3.5} />
+      <Line x1={40} y1={40} x2={40} y2={41} stroke="#0d5a1a" strokeWidth={5} />
+      <Line x1={40} y1={55} x2={40} y2={56} stroke="#0d5a1a" strokeWidth={5} />
+      <Line x1={60} y1={75} x2={60} y2={30} stroke="#1a7a2a" strokeWidth={3.5} />
+      <Line x1={60} y1={45} x2={60} y2={46} stroke="#0d5a1a" strokeWidth={5} />
+      <Line x1={60} y1={60} x2={60} y2={61} stroke="#0d5a1a" strokeWidth={5} />
+      <Path d="M40,30 Q25,22 20,28" stroke="#1a7a2a" strokeWidth={2} fill="#1a7a2a" opacity={0.7} />
+      <Path d="M40,30 Q30,18 22,20" stroke="#1a7a2a" strokeWidth={2} fill="#1a7a2a" opacity={0.7} />
+      <Path d="M60,35 Q75,27 80,33" stroke="#1a7a2a" strokeWidth={2} fill="#1a7a2a" opacity={0.7} />
+      <Path d="M60,35 Q70,23 78,25" stroke="#1a7a2a" strokeWidth={2} fill="#1a7a2a" opacity={0.7} />
+    </>
+  );
+}
+
+function ChrysanthemumArt() {
+  // Multi-petal chrysanthemum
+  const cx = 50, cy = 50;
+  const petals: React.ReactNode[] = [];
+  for (let i = 0; i < 12; i++) {
+    const angle = (i * 30 - 90) * Math.PI / 180;
+    const px = cx + 18 * Math.cos(angle);
+    const py = cy + 18 * Math.sin(angle);
+    petals.push(
+      <Path
+        key={i}
+        d={`M${cx},${cy} Q${cx + 8 * Math.cos(angle - 0.4)},${cy + 8 * Math.sin(angle - 0.4)} ${px},${py} Q${cx + 8 * Math.cos(angle + 0.4)},${cy + 8 * Math.sin(angle + 0.4)} ${cx},${cy}`}
+        fill={i % 2 === 0 ? '#cc2222' : '#dd4444'}
+      />
+    );
+  }
+  return (
+    <>
+      {petals}
+      <Circle cx={cx} cy={cy} r={5} fill="#ffdd44" />
+    </>
+  );
+}
+
+function SpringArt() {
+  // Cherry blossom buds on branch
+  return (
+    <>
+      <Path d="M25,70 Q40,50 60,30" stroke="#6b4226" strokeWidth={2.5} fill="none" />
+      <Path d="M45,48 Q55,42 70,45" stroke="#6b4226" strokeWidth={2} fill="none" />
+      <Circle cx={60} cy={30} r={7} fill="#ff6b8a" />
+      <Circle cx={60} cy={30} r={3} fill="#ffdd44" />
+      <Circle cx={70} cy={45} r={6} fill="#ff8fa6" />
+      <Circle cx={70} cy={45} r={2.5} fill="#ffdd44" />
+      <Circle cx={38} cy={55} r={5} fill="#ffb0c0" opacity={0.8} />
+    </>
+  );
+}
+
+function SummerArt() {
+  // Lotus flower
+  return (
+    <>
+      <Path d="M50,65 Q45,45 35,30" stroke="#cc2222" strokeWidth={2} fill="#ff6666" opacity={0.8} />
+      <Path d="M50,65 Q50,40 50,25" stroke="#cc2222" strokeWidth={2} fill="#ff4444" opacity={0.9} />
+      <Path d="M50,65 Q55,45 65,30" stroke="#cc2222" strokeWidth={2} fill="#ff6666" opacity={0.8} />
+      <Path d="M50,65 Q40,48 28,38" stroke="#cc2222" strokeWidth={1.5} fill="#ff8888" opacity={0.6} />
+      <Path d="M50,65 Q60,48 72,38" stroke="#cc2222" strokeWidth={1.5} fill="#ff8888" opacity={0.6} />
+      <Circle cx={50} cy={55} r={4} fill="#ffdd44" />
+    </>
+  );
+}
+
+function AutumnArt() {
+  // Maple leaf
+  return (
+    <>
+      <Path d="M50,68 L50,42" stroke="#6b4226" strokeWidth={2} />
+      <Path d="M50,42 L35,25 L42,38 L30,32 L40,42 L25,42 L38,47 L50,42" fill="#dd6622" />
+      <Path d="M50,42 L65,25 L58,38 L70,32 L60,42 L75,42 L62,47 L50,42" fill="#cc5511" />
+      <Path d="M50,42 L50,22" stroke="#dd6622" strokeWidth={2} fill="none" />
+    </>
+  );
+}
+
+function WinterArt() {
+  // Snowflake
+  const cx = 50, cy = 48;
+  const arms: React.ReactNode[] = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * 60) * Math.PI / 180;
+    const ex = cx + 20 * Math.cos(angle);
+    const ey = cy + 20 * Math.sin(angle);
+    arms.push(
+      <Line key={`a${i}`} x1={cx} y1={cy} x2={ex} y2={ey} stroke="#1a5ea6" strokeWidth={2} />
+    );
+    // Small branch on each arm
+    const bx = cx + 12 * Math.cos(angle);
+    const by = cy + 12 * Math.sin(angle);
+    const b1x = bx + 6 * Math.cos(angle + 0.7);
+    const b1y = by + 6 * Math.sin(angle + 0.7);
+    const b2x = bx + 6 * Math.cos(angle - 0.7);
+    const b2y = by + 6 * Math.sin(angle - 0.7);
+    arms.push(
+      <Line key={`b1${i}`} x1={bx} y1={by} x2={b1x} y2={b1y} stroke="#1a5ea6" strokeWidth={1.5} />,
+      <Line key={`b2${i}`} x1={bx} y1={by} x2={b2x} y2={b2y} stroke="#1a5ea6" strokeWidth={1.5} />
+    );
+  }
+  return (
+    <>
+      {arms}
+      <Circle cx={cx} cy={cy} r={3} fill="#1a5ea6" />
+    </>
+  );
+}
+
+const FLOWER_ART: Record<string, () => React.ReactNode> = {
+  [FlowerType.Plum]: PlumArt,
+  [FlowerType.Orchid]: OrchidArt,
+  [FlowerType.Bamboo]: BambooArt,
+  [FlowerType.Chrysanthemum]: ChrysanthemumArt,
+  [FlowerType.Spring]: SpringArt,
+  [FlowerType.Summer]: SummerArt,
+  [FlowerType.Autumn]: AutumnArt,
+  [FlowerType.Winter]: WinterArt,
 };
+
+function FlowerTileSvg({ flowerType, w, h }: { flowerType: FlowerType; w: number; h: number }) {
+  const info = FLOWER_INFO[flowerType];
+  if (!info) return null;
+  const ArtComponent = FLOWER_ART[flowerType];
+  const numSize = Math.max(10, w * 0.28);
+  const charSize = Math.max(12, w * 0.32);
+
+  return (
+    <View style={{ width: w, height: h, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={w - 4} height={h - 4} viewBox="0 0 100 100">
+        {/* Number in top-left */}
+        <SvgText
+          x={8}
+          y={18}
+          fontSize={numSize / w * 100}
+          fontWeight="bold"
+          fill={info.color}
+          textAnchor="start"
+        >
+          {info.num}
+        </SvgText>
+
+        {/* Art in center */}
+        <Svg x={0} y={10} width={100} height={65} viewBox="0 0 100 80">
+          {ArtComponent && <ArtComponent />}
+        </Svg>
+
+        {/* Character at bottom */}
+        <SvgText
+          x={50}
+          y={95}
+          fontSize={charSize / w * 100}
+          fontWeight="bold"
+          fill={info.color}
+          textAnchor="middle"
+        >
+          {info.char}
+        </SvgText>
+      </Svg>
+    </View>
+  );
+}
 
 const SIZES = {
-  sm: { w: 28, h: 36, imgPad: 3, flowerFont: 16 },
-  md: { w: 36, h: 48, imgPad: 4, flowerFont: 22 },
-  lg: { w: 48, h: 64, imgPad: 5, flowerFont: 30 },
+  sm: { w: 28, h: 36, imgPad: 3 },
+  md: { w: 36, h: 48, imgPad: 4 },
+  lg: { w: 48, h: 64, imgPad: 5 },
 };
 
 export default function TileDisplay({ tile, size = 'md', highlighted = false }: TileDisplayProps) {
   const key = getTileKey(tile);
   const s = SIZES[size];
   const img = TILE_IMAGES[key];
-  const flowerLabel = FLOWER_LABELS[key];
-  const flowerColor = FLOWER_COLORS[key];
+
+  const isFlower = tile.kind === 'flower';
 
   return (
     <View style={[
@@ -103,7 +317,9 @@ export default function TileDisplay({ tile, size = 'md', highlighted = false }: 
       { width: s.w, height: s.h },
       highlighted && styles.highlighted,
     ]}>
-      {img ? (
+      {isFlower ? (
+        <FlowerTileSvg flowerType={tile.flower} w={s.w} h={s.h} />
+      ) : img ? (
         <Image
           source={img}
           style={{
@@ -112,10 +328,6 @@ export default function TileDisplay({ tile, size = 'md', highlighted = false }: 
           }}
           resizeMode="contain"
         />
-      ) : flowerLabel ? (
-        <Text style={[styles.flowerText, { fontSize: s.flowerFont, color: flowerColor }]}>
-          {flowerLabel}
-        </Text>
       ) : (
         <Text style={styles.fallbackText}>?</Text>
       )}
@@ -145,9 +357,6 @@ const styles = StyleSheet.create({
     borderColor: '#c9a94e',
     borderWidth: 2,
     backgroundColor: '#fff8e8',
-  },
-  flowerText: {
-    fontWeight: 'bold',
   },
   fallbackText: {
     fontSize: 14,

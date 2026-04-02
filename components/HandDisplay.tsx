@@ -11,17 +11,6 @@ interface HandDisplayProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const FLOWER_LABELS: Record<FlowerType, string> = {
-  [FlowerType.Spring]: '春',
-  [FlowerType.Summer]: '夏',
-  [FlowerType.Autumn]: '秋',
-  [FlowerType.Winter]: '冬',
-  [FlowerType.Plum]: '梅',
-  [FlowerType.Orchid]: '蘭',
-  [FlowerType.Chrysanthemum]: '菊',
-  [FlowerType.Bamboo]: '竹',
-};
-
 const tileSizes = { sm: 28, md: 36, lg: 48 };
 
 export default function HandDisplay({ hand, flowers, showWinning = true, size = 'md' }: HandDisplayProps) {
@@ -96,11 +85,11 @@ export default function HandDisplay({ hand, flowers, showWinning = true, size = 
       {flowers && flowers.length > 0 && (
         <View style={styles.flowers}>
           <Text style={styles.flowerTitle}>花</Text>
-          {flowers.map((f, i) => (
-            <View key={i} style={styles.flowerChip}>
-              <Text style={styles.flowerText}>{FLOWER_LABELS[f.flower]}</Text>
-            </View>
-          ))}
+          <View style={styles.flowerTiles}>
+            {flowers.map((f, i) => (
+              <TileDisplay key={i} tile={f} size={size} />
+            ))}
+          </View>
         </View>
       )}
     </View>
@@ -200,17 +189,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 2,
   },
-  flowerChip: {
-    backgroundColor: '#f8e8c8',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: '#d4c4a4',
-  },
-  flowerText: {
-    fontSize: 12,
-    color: '#8a6a2a',
-    fontWeight: '600',
+  flowerTiles: {
+    flexDirection: 'row',
+    gap: 2,
   },
 });

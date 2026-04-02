@@ -91,13 +91,12 @@ export default function TilePicker({ onSelectTile, onSelectFlower, showFlowers =
         <View style={styles.row}>
           <Text style={styles.rowLabel}>花</Text>
           <View style={styles.tiles}>
-            {FLOWERS.map(({ flower, label }) => (
+            {FLOWERS.map(({ flower }) => (
               <Pressable
                 key={flower}
-                style={styles.flowerBtn}
                 onPress={() => onSelectFlower(flowerTile(flower))}
               >
-                <Text style={styles.flowerBtnText}>{label}</Text>
+                <TileDisplay tile={flowerTile(flower)} size="sm" />
               </Pressable>
             ))}
           </View>
@@ -131,18 +130,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 2,
-  },
-  flowerBtn: {
-    backgroundColor: '#f8e8c8',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#d4c4a4',
-  },
-  flowerBtnText: {
-    fontSize: 14,
-    color: '#8a6a2a',
-    fontWeight: '600',
   },
 });
