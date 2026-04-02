@@ -32,7 +32,7 @@ export default function HandDisplay({ hand, flowers, showWinning = true, size = 
           <View key={mi} style={styles.meldGroup}>
             {meld.type === MeldType.ConcealedKong ? (
               <View style={styles.concealedKongBadge}>
-                <Text style={styles.concealedKongText}>暗</Text>
+                <Text style={styles.concealedKongText}>暗槓</Text>
               </View>
             ) : !meld.isConcealed ? (
               <View style={styles.openBadge}>
@@ -44,7 +44,9 @@ export default function HandDisplay({ hand, flowers, showWinning = true, size = 
                 <>
                   {/* Concealed kong: show first tile face-down, middle two face-up, last face-down */}
                   <View style={[styles.faceDownTile, { width: tileSizes[size], height: tileSizes[size] * 1.35 }]}>
-                    <Text style={styles.faceDownText}>🀫</Text>
+                    <View style={styles.faceDownPattern}>
+                      <View style={styles.faceDownDiamond} />
+                    </View>
                   </View>
                   <TileDisplay
                     key={`${mi}-1`}
@@ -59,7 +61,9 @@ export default function HandDisplay({ hand, flowers, showWinning = true, size = 
                     highlighted={showWinning && tilesEqual(meld.tiles[2], hand.winningTile) && isLastMatch(meld.tiles, hand.winningTile, 2)}
                   />
                   <View style={[styles.faceDownTile, { width: tileSizes[size], height: tileSizes[size] * 1.35 }]}>
-                    <Text style={styles.faceDownText}>🀫</Text>
+                    <View style={styles.faceDownPattern}>
+                      <View style={styles.faceDownDiamond} />
+                    </View>
                   </View>
                 </>
               ) : (
@@ -73,10 +77,8 @@ export default function HandDisplay({ hand, flowers, showWinning = true, size = 
                 ))
               )}
             </View>
-            {(meld.type === MeldType.Kong || meld.type === MeldType.ConcealedKong || meld.type === MeldType.AddedKong) && (
-              <Text style={styles.kongLabel}>
-                {meld.type === MeldType.ConcealedKong ? '暗槓' : '槓'}
-              </Text>
+            {(meld.type === MeldType.Kong || meld.type === MeldType.AddedKong) && (
+              <Text style={styles.kongLabel}>槓</Text>
             )}
           </View>
         ))}
@@ -146,25 +148,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   concealedKongBadge: {
-    backgroundColor: '#4a4a5a',
-    borderRadius: 3,
-    paddingHorizontal: 4,
+    backgroundColor: '#1a472a',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: '#c9a94e',
   },
   concealedKongText: {
-    fontSize: 9,
-    color: '#e0d8c8',
+    fontSize: 11,
+    color: '#c9a94e',
     fontWeight: '700',
+    letterSpacing: 2,
   },
   faceDownTile: {
-    backgroundColor: '#2a5a3a',
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: '#1a3a2a',
+    backgroundColor: '#1a472a',
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#2a6a4a',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  faceDownText: {
-    fontSize: 14,
+  faceDownPattern: {
+    width: '60%',
+    height: '60%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faceDownDiamond: {
+    width: 10,
+    height: 10,
+    backgroundColor: '#2a6a4a',
+    borderWidth: 1,
+    borderColor: '#3a8a5a',
+    transform: [{ rotate: '45deg' }],
   },
   kongLabel: {
     fontSize: 9,
