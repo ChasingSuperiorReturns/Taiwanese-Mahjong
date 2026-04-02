@@ -34,7 +34,6 @@ const GREEN = '#1a7a2a';
 const DARK_GREEN = '#0d5e1a';
 const RED = '#cc2222';
 const DARK_RED = '#991a1a';
-const NAVY = '#1a3a5a';
 const CREAM = '#faf8f0';
 
 const HONOR_LABELS: Record<string, string> = {
@@ -73,8 +72,7 @@ const SIZES = {
 
 // ═══════════════════════════════════════════════
 // 筒 (Circles/Coins) — Concentric ring pattern
-// Each circle: outer ring → cream gap → inner ring → center dot
-// Like traditional Chinese coins / archery targets
+// All uniform dark green — matches traditional Taiwanese tiles
 // ═══════════════════════════════════════════════
 
 // Positions [cx, cy] in a 100×100 viewBox
@@ -94,41 +92,26 @@ const CIRCLE_R: Record<number, number> = {
   1: 30, 2: 17, 3: 14, 4: 14, 5: 13, 6: 12, 7: 11, 8: 10, 9: 10,
 };
 
-// Traditional Taiwanese color per circle index — matches reference image
-const CIRCLE_COLORS: Record<number, string[]> = {
-  1: [GREEN],
-  2: [GREEN, NAVY],
-  3: [GREEN, RED, GREEN],
-  4: [GREEN, GREEN, GREEN, GREEN],
-  5: [GREEN, GREEN, RED, GREEN, GREEN],
-  6: [RED, RED, RED, RED, RED, RED],
-  7: [GREEN, GREEN, GREEN, RED, GREEN, GREEN, GREEN],
-  8: [NAVY, NAVY, NAVY, NAVY, NAVY, NAVY, NAVY, NAVY],
-  9: [GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN],
-};
-
-/** Single concentric-ring coin */
-function CoinSvg({ cx, cy, r, color }: { cx: number; cy: number; r: number; color: string }) {
-  const outerStroke = Math.max(1.8, r * 0.18);
+/** Single concentric-ring coin — all green */
+function CoinSvg({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const outerStroke = Math.max(1.8, r * 0.2);
   const innerR = r * 0.55;
-  const innerStroke = Math.max(1.2, r * 0.14);
+  const innerStroke = Math.max(1.2, r * 0.15);
   const dotR = Math.max(1, r * 0.15);
   return (
     <G>
-      {/* Outer ring */}
-      <Circle cx={cx} cy={cy} r={r} fill={CREAM} stroke={color} strokeWidth={outerStroke} />
-      {/* Inner ring */}
-      <Circle cx={cx} cy={cy} r={innerR} fill={CREAM} stroke={color} strokeWidth={innerStroke} />
-      {/* Center dot */}
-      <Circle cx={cx} cy={cy} r={dotR} fill={color} />
+      <Circle cx={cx} cy={cy} r={r} fill={CREAM} stroke={DARK_GREEN} strokeWidth={outerStroke} />
+      <Circle cx={cx} cy={cy} r={innerR} fill={CREAM} stroke={DARK_GREEN} strokeWidth={innerStroke} />
+      <Circle cx={cx} cy={cy} r={dotR} fill={DARK_GREEN} />
     </G>
   );
 }
 
-/** 1筒: Ornate rosette/medallion — green with decorative spokes */
+/** 1筒: Ornate rosette/medallion — green outer with red center */
 function Rosette1Svg() {
   const petals = 12;
   const elements = [];
+  // Decorative spokes
   for (let i = 0; i < petals; i++) {
     const angle = (i * 360) / petals;
     const rad = (angle * Math.PI) / 180;
@@ -140,7 +123,7 @@ function Rosette1Svg() {
       <Line key={`spoke-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={DARK_GREEN} strokeWidth={2} />
     );
   }
-  // Small circles at petal tips
+  // Petal dots at tips
   for (let i = 0; i < 8; i++) {
     const angle = (i * 360) / 8;
     const rad = (angle * Math.PI) / 180;
@@ -152,15 +135,11 @@ function Rosette1Svg() {
   }
   return (
     <G>
-      {/* Outer decorative ring */}
-      <Circle cx={50} cy={50} r={30} fill={CREAM} stroke={GREEN} strokeWidth={3} />
+      <Circle cx={50} cy={50} r={30} fill={CREAM} stroke={DARK_GREEN} strokeWidth={3} />
       <Circle cx={50} cy={50} r={26} fill={CREAM} stroke={DARK_GREEN} strokeWidth={1.5} />
-      {/* Spokes */}
       {elements}
-      {/* Inner rings */}
       <Circle cx={50} cy={50} r={14} fill={CREAM} stroke={GREEN} strokeWidth={2.5} />
       <Circle cx={50} cy={50} r={9} fill={CREAM} stroke={RED} strokeWidth={2} />
-      {/* Center */}
       <Circle cx={50} cy={50} r={4} fill={RED} />
     </G>
   );
@@ -177,23 +156,22 @@ function CirclePattern({ value, size }: { value: number; size: 'sm' | 'md' | 'lg
   }
   const positions = CIRCLE_POS[value];
   const r = CIRCLE_R[value];
-  const colors = CIRCLE_COLORS[value];
   return (
     <Svg width={s.svgSize} height={s.svgSize} viewBox="0 0 100 100">
       {positions.map(([cx, cy], i) => (
-        <CoinSvg key={i} cx={cx} cy={cy} r={r} color={colors[i]} />
+        <CoinSvg key={i} cx={cx} cy={cy} r={r} />
       ))}
     </Svg>
   );
 }
 
 // ═══════════════════════════════════════════════
-// 條 (Bamboo/Sticks) — Chain-link oval segments
-// Each stick: 3 oval capsule segments stacked vertically
-// Like connected links of a chain
+// 條 (Bamboo/Sticks) — Vertical bamboo segments
+// Each stick: tall capsule with horizontal node lines
+// All uniform green — matches traditional Taiwanese tiles
 // ═══════════════════════════════════════════════
 
-// How many sticks per row for each value
+// X positions of sticks per row, in a 100×100 viewBox
 const BAMBOO_LAYOUT: Record<number, number[][]> = {
   2: [[35, 65]],
   3: [[25, 50, 75]],
@@ -205,90 +183,69 @@ const BAMBOO_LAYOUT: Record<number, number[][]> = {
   9: [[25, 50, 75], [25, 50, 75], [25, 50, 75]],
 };
 
-// Colors for each stick (green/blue, with occasional red)
-const BAMBOO_COLORS: Record<number, string[]> = {
-  2: [GREEN, GREEN],
-  3: [GREEN, RED, GREEN],
-  4: [GREEN, GREEN, GREEN, GREEN],
-  5: [GREEN, GREEN, RED, GREEN, GREEN],
-  6: [GREEN, GREEN, GREEN, GREEN, GREEN, GREEN],
-  7: [GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN],
-  8: [GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN],
-  9: [GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN, GREEN],
-};
-
-/** Single chain-link bamboo stick — 3 oval segments connected */
-function ChainStickSvg({ cx, cy, h, color }: { cx: number; cy: number; h: number; color: string }) {
-  const segH = h * 0.28;    // height of each oval segment
-  const segW = h * 0.22;    // width of each oval
-  const gap = h * 0.04;     // gap between segments
-  const totalH = segH * 3 + gap * 2;
-  const startY = cy - totalH / 2;
+/** Single bamboo stick — tall rounded rect with horizontal node notches */
+function BambooStickSvg({ cx, cy, h, w, color }: { cx: number; cy: number; h: number; w: number; color: string }) {
   const outline = color === RED ? DARK_RED : DARK_GREEN;
-  const lighter = color === GREEN ? '#3db85a' : (color === RED ? '#e85555' : '#3db85a');
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  const capH = h * 0.08;
+  const nodeY1 = cy - h * 0.15;
+  const nodeY2 = cy + h * 0.15;
 
-  const segments = [];
-  for (let i = 0; i < 3; i++) {
-    const sy = startY + i * (segH + gap) + segH / 2;
-    segments.push(
-      <G key={i}>
-        {/* Oval segment — outlined capsule */}
-        <Ellipse cx={cx} cy={sy} rx={segW / 2} ry={segH / 2}
-          fill={CREAM} stroke={outline} strokeWidth={1.8} />
-        {/* Inner oval for depth */}
-        <Ellipse cx={cx} cy={sy} rx={segW / 2 - 2.5} ry={segH / 2 - 2}
-          fill="none" stroke={color} strokeWidth={1.3} />
-        {/* Highlight dot at center of segment */}
-        <Circle cx={cx} cy={sy} r={1} fill={color} />
-      </G>
-    );
-    // Connector line between segments
-    if (i < 2) {
-      const lineY1 = sy + segH / 2;
-      const lineY2 = sy + segH / 2 + gap;
-      segments.push(
-        <Line key={`conn-${i}`} x1={cx} y1={lineY1} x2={cx} y2={lineY2}
-          stroke={outline} strokeWidth={1.5} />
-      );
-    }
-  }
-  // Top and bottom caps (small circles at ends)
-  segments.push(
-    <Circle key="top-cap" cx={cx} cy={startY} r={segW / 2 - 0.5}
-      fill={outline} />,
-    <Circle key="bot-cap" cx={cx} cy={startY + totalH} r={segW / 2 - 0.5}
-      fill={outline} />
+  return (
+    <G>
+      {/* Main stick body — rounded rectangle */}
+      <Rect x={x} y={y} width={w} height={h} rx={w / 2} ry={w / 2}
+        fill={CREAM} stroke={outline} strokeWidth={1.6} />
+      {/* Top cap */}
+      <Rect x={x} y={y} width={w} height={capH} rx={w / 2} ry={w / 2}
+        fill={outline} />
+      {/* Bottom cap */}
+      <Rect x={x} y={y + h - capH} width={w} height={capH} rx={w / 2} ry={w / 2}
+        fill={outline} />
+      {/* Node line 1 */}
+      <Line x1={x + 1} y1={nodeY1} x2={x + w - 1} y2={nodeY1}
+        stroke={outline} strokeWidth={1.4} />
+      {/* Node line 2 */}
+      <Line x1={x + 1} y1={nodeY2} x2={x + w - 1} y2={nodeY2}
+        stroke={outline} strokeWidth={1.4} />
+      {/* Center dot between nodes */}
+      <Circle cx={cx} cy={cy} r={1.2} fill={color} />
+    </G>
   );
-  return <G>{segments}</G>;
 }
 
-/** 1條: Traditional bird (sparrow/peacock) */
+/** 1條: Traditional bird (sparrow/peacock) — all green */
 function BambooBirdSvg() {
   return (
     <G>
-      {/* Body — green feathered */}
-      <Ellipse cx={50} cy={60} rx={20} ry={14} fill={GREEN} />
-      {/* Wing detail */}
-      <Ellipse cx={44} cy={56} rx={12} ry={7} fill="#3db85a" />
-      <Ellipse cx={44} cy={56} rx={8} ry={4} fill={GREEN} />
-      {/* Tail feathers */}
-      <Path d="M 30 56 L 16 40 L 22 38 L 34 52 Z" fill={GREEN} />
-      <Path d="M 28 60 L 12 48 L 18 46 L 32 56 Z" fill={DARK_GREEN} />
-      <Path d="M 30 64 L 18 56 L 22 54 L 34 60 Z" fill="#3db85a" />
+      {/* Tail feathers — sweeping curves */}
+      <Path d="M 38 55 C 20 40, 10 25, 18 18 C 22 14, 28 18, 35 30 C 38 35, 38 45, 38 55 Z"
+        fill={GREEN} stroke={DARK_GREEN} strokeWidth={0.8} />
+      <Path d="M 34 58 C 14 48, 5 32, 12 24 C 16 20, 22 26, 30 38 C 33 43, 34 50, 34 58 Z"
+        fill={DARK_GREEN} stroke={DARK_GREEN} strokeWidth={0.5} />
+      <Path d="M 42 52 C 26 38, 22 22, 28 16 C 32 12, 36 18, 40 32 C 42 38, 42 46, 42 52 Z"
+        fill="#3aaa4a" stroke={DARK_GREEN} strokeWidth={0.5} />
+      {/* Body */}
+      <Ellipse cx={50} cy={60} rx={18} ry={13} fill={GREEN} stroke={DARK_GREEN} strokeWidth={1} />
+      {/* Wing */}
+      <Ellipse cx={46} cy={57} rx={11} ry={6} fill="#3aaa4a" stroke={DARK_GREEN} strokeWidth={0.6} />
       {/* Head */}
-      <Circle cx={66} cy={40} r={11} fill={RED} />
-      {/* Eye ring */}
-      <Circle cx={69} cy={38} r={3} fill="white" />
-      <Circle cx={69.5} cy={37.5} r={1.3} fill="black" />
+      <Circle cx={64} cy={42} r={10} fill={RED} stroke={DARK_RED} strokeWidth={0.8} />
+      {/* Eye */}
+      <Circle cx={67} cy={40} r={2.5} fill="white" />
+      <Circle cx={67.5} cy={39.5} r={1.2} fill="black" />
       {/* Beak */}
-      <Path d="M 76 41 L 86 39 L 76 44 Z" fill="#d4a020" stroke="#8a6a10" strokeWidth={0.5} />
-      {/* Crest/wattle */}
-      <Path d="M 62 30 Q 58 26 62 24 Q 66 22 64 28 Z" fill={RED} />
+      <Path d="M 73 43 L 82 41 L 73 46 Z" fill="#d4a020" stroke="#8a6a10" strokeWidth={0.5} />
+      {/* Crest */}
+      <Path d="M 60 33 Q 56 27 60 24 Q 64 22 62 28 Z" fill={RED} />
       {/* Feet */}
-      <Line x1={45} y1={74} x2={42} y2={84} stroke={DARK_RED} strokeWidth={1.5} />
-      <Line x1={55} y1={74} x2={58} y2={84} stroke={DARK_RED} strokeWidth={1.5} />
-      <Line x1={42} y1={84} x2={38} y2={86} stroke={DARK_RED} strokeWidth={1} />
-      <Line x1={58} y1={84} x2={62} y2={86} stroke={DARK_RED} strokeWidth={1} />
+      <Line x1={44} y1={73} x2={40} y2={84} stroke={DARK_GREEN} strokeWidth={1.5} />
+      <Line x1={56} y1={73} x2={60} y2={84} stroke={DARK_GREEN} strokeWidth={1.5} />
+      <Line x1={40} y1={84} x2={36} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
+      <Line x1={40} y1={84} x2={43} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
+      <Line x1={60} y1={84} x2={57} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
+      <Line x1={60} y1={84} x2={64} y2={87} stroke={DARK_GREEN} strokeWidth={1} />
     </G>
   );
 }
@@ -305,23 +262,39 @@ function BambooPattern({ value, size }: { value: number; size: 'sm' | 'md' | 'lg
   }
 
   const layout = BAMBOO_LAYOUT[value];
-  const colors = BAMBOO_COLORS[value];
   const numRows = layout.length;
-  const stickH = numRows === 1 ? 80 : numRows === 2 ? 38 : 26;
+  // Stick dimensions per row count
+  const stickH = numRows === 1 ? 80 : numRows === 2 ? 36 : 24;
+  const stickW = numRows === 1 ? 12 : numRows === 2 ? 10 : 8;
   const rowSpacing = 100 / (numRows + 1);
-  let colorIdx = 0;
 
+  // Color assignment: middle stick red for 3, 5; rest green
+  const totalSticks = layout.reduce((sum, r) => sum + r.length, 0);
+  let colorIdx = 0;
+  const colors: string[] = [];
+  for (const row of layout) {
+    for (let i = 0; i < row.length; i++) {
+      if ((value === 3 || value === 5) && colorIdx === Math.floor(totalSticks / 2)) {
+        colors.push(RED);
+      } else {
+        colors.push(GREEN);
+      }
+      colorIdx++;
+    }
+  }
+
+  let stickIdx = 0;
   return (
     <Svg width={s.svgSize} height={s.svgSize} viewBox="0 0 100 100">
       {layout.map((row, rowIdx) => {
         const cy = rowSpacing * (rowIdx + 1);
         return row.map((cx, i) => {
-          const c = colors[colorIdx % colors.length];
-          colorIdx++;
+          const c = colors[stickIdx];
+          stickIdx++;
           return (
-            <ChainStickSvg
+            <BambooStickSvg
               key={`${rowIdx}-${i}`}
-              cx={cx} cy={cy} h={stickH} color={c}
+              cx={cx} cy={cy} h={stickH} w={stickW} color={c}
             />
           );
         });
